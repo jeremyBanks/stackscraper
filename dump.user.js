@@ -33,7 +33,7 @@ _getPost(1);
 
 var content = $("#content").empty();
 
-$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a></h1></div>").appendTo(content);
+$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a> (<a href='https://gist.github.com/raw/54559d41cc8041ebc534/dump.user.js'>update/install></a></h1></div>").appendTo(content);
 
  
 });
