@@ -21,19 +21,70 @@ var BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBl
 var URL = window.URL || webkitURL || mozURL || oURL;
 
 var _getPost = function(id) {
-  $.ajax("/posts/" + id + "/ajax-load", { cache: true }).then(function(e) {
-    $("<div>").append(e).appendTo(content);
+  return $.ajax("/posts/" + id + "/ajax-load", { cache: true }).pipe(function(e) {
+    var loadedPost = $("<div>").append(e);
+    var type, url, tags, title, html;
+    
+    if (url = loadedPost.find(".question-hyperlink").attr("href")) {
+      type = "question";
+      tags = loadedPost.find(".post-taglist").find(".post-tag").map(function(e) {
+        return $(e).text();
+      });
+    } else if (url = loadedPost.find(".answer-hyperlink").attr("href")) {
+      type = "answer";
+    } else {
+      throw new Error('Unknown post type for post of id ' + id);
+    }
+    
+    title = loadedPost.find("h3").first().text();
+    html = loadedPost.find(".post-text").html();
+    // really we should match the API format, neh?
+
+    return {
+      id: id,
+      title: title,
+      type: type,
+      html: html,
+      tags: tags,
+      askTime: askTime,
+      url: url,
+      score: score,
+      favoriteCount: favoriteCount,
+      
+      owner: {
+        id: ownerId,
+        name: ownerName,
+        url: ownerUrl
+      },
+      
+      editor: {
+        id: editorId,
+        name: editorName,
+        url: editorUrl
+      },
+      
+      states: {
+        "locked": {
+         
+        }
+      }
+      locked: locked,
+      lockers: lockers,
+      
+    };
   });
 };
 
 var siteName = document.title.split(/\ - /)[1];
 document.title = "Stack Dump - Tools - " + siteName;
 
-_getPost(1);
-
 var content = $("#content").empty();
 
-$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a> (<a href='https://gist.github.com/raw/54559d41cc8041ebc534/dump.user.js'>update/install></a></h1></div>").appendTo(content);
+$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a> <span style='opacity: 0.5; font-size: 0.5em;'>(<a href='https://gist.github.com/raw/54559d41cc8041ebc534/dump.user.js'>update/install</a>)</span></h1></div>").appendTo(content);
 
+
+_getPost(1).then(function(o) {
+  console.log(o);
+});
  
 });
