@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Dump
-// @version        0.0.2
-// @namespace      http://stackoverflow.com/q/
+// @version        0.0.4
+// @namespace      http://gist.github.com/54559d41cc8041ebc534
 // @description    Scrapes Stack Exchange posts en masse, including deleted ones if visible to you.
 // @include        http://*.stackexchange.com/tools/dump
 // @include        http://stackoverflow.com/tools/dump
@@ -10,81 +10,129 @@
 // @include        http://*.superuser.com/tools/dump
 // @include        http://serverfault.com/tools/dump
 // @include        http://*.serverfault.com/tools/dump
+// @include        http://stackapps.com/tools/dump
+// @include        http://*.stackapps.com/tools/dump
 // @include        http://askubuntu.com/tools/dump
 // @include        http://*.askubuntu.com/tools/dump
 // ==/UserScript==
-
-var load,execute,loadAndExecute;load=function(a,b,c){var d;d=document.createElement("script"),d.setAttribute("src",a),b!=null&&d.addEventListener("load",b),c!=null&&d.addEventListener("error",c),document.body.appendChild(d);return d},execute=function(a){var b,c;typeof a=="function"?b="("+a+")();":b=a,c=document.createElement("script"),c.textContent=b,document.body.appendChild(c);return c},loadAndExecute=function(a,b){return load(a,function(){return execute(b)})};
-execute(function(){
+var load,execute,loadAndExecute;load=function(a,b,c){var d;d=document.
+createElement("script"),d.setAttribute("src",a),b!=null&&d.
+addEventListener("load",b),c!=null&&d.addEventListener("error",c),
+document.body.appendChild(d);return d},execute=function(a){var b,c;
+typeof a=="function"?b="("+a+")();":b=a,c=document.createElement(
+"script"),c.textContent=b,document.body.appendChild(c);return c},
+loadAndExecute=function(a,b){return load(a,function(){
+return execute(b)})}; execute(function(){ // in normal DOM context
 
 var BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder || window.OBlobBuilder;
 var URL = window.URL || webkitURL || mozURL || oURL;
 
-var _getPost = function(id) {
+var API_URL = "https://api.stackexchange.com/2.0/";
+var API_KEY = "CtBYNg0K2ALoGmQ2MalrMw((";
+var DOMAIN = location.host;
+
+var blobify = function(o) {
+	var s = JSON.stringify(o);
+	var bb = new BlobBuilder;
+	bb.append(s);
+	return bb.getBlob("application/json");
+};
+
+var main = function() {
+	var siteName = document.title.split(/\ - /)[1];
+	document.title = "Stack Dump - Tools - " + siteName;
+	var content = $("#content").empty();
+	$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a> <span style='opacity: 0.5; font-size: 0.5em;'>(<a href='https://gist.github.com/raw/54559d41cc8041ebc534/dump.user.js'>update/install</a>)</span></h1></div>").appendTo(content);
+	
+	var initialId = 12830, postCount = 100;
+	
+	// created $.Deferred values to hold each requested posted
+	var requested = [];
+	for (var i = 0; i < postCount; i++) {
+		requested[i] = new $.Deferred;
+	}
+	
+	// request a new post every 2000 ms
+	var j = 0, j_i = setInterval(function() {
+		if (j >= postCount) { return clearInterval(j_i); }
+		
+		getPostByAjaxLoad(j + initialId).then(requested[j].resolve, requested[j].reject);
+		
+		j++;
+	}, 1500);
+	
+	// when they're done, display them
+	$.when.apply($, requested).done(function() {
+		var url =  URL.createObjectURL(blobify(Array.prototype.slice.call(arguments)));
+		$("<a>JSON Result</a>").attr("href", url).appendTo($("<h4>").appendTo(content));
+		$("<iframe></iframe>").attr("src", url).css({
+			width: "100%",
+			height: "25em",
+			border: "1px solid #444"
+		}).appendTo(content);
+	});
+
+};
+
+var getPostByAjaxLoad = function(id) {
   return $.ajax("/posts/" + id + "/ajax-load", { cache: true }).pipe(function(e) {
+    var type, ownerSig, editorSig, editor, owner, isDeleted;
+	
     var loadedPost = $("<div>").append(e);
-    var type, url, tags, title, html;
     
     if (url = loadedPost.find(".question-hyperlink").attr("href")) {
       type = "question";
-      tags = loadedPost.find(".post-taglist").find(".post-tag").map(function(e) {
-        return $(e).text();
-      });
+      tags = loadedPost.find(".post-taglist .post-tag").map(function() {
+        return $(this).text();
+      }).toArray();
+	  favoriteCount = +(loadedPost.find(".favoritecount").text() || 0);
+	  
     } else if (url = loadedPost.find(".answer-hyperlink").attr("href")) {
       type = "answer";
     } else {
       throw new Error('Unknown post type for post of id ' + id);
     }
     
-    title = loadedPost.find("h3").first().text();
-    html = loadedPost.find(".post-text").html();
-    // really we should match the API format, neh?
-
+	var sigs = loadedPost.find(".post-signature");
+	if (sigs.length == 2) {
+		editorSig = $(sigs[0]);
+		ownerSig = $(sigs[1]);
+	} else {
+		ownerSig = $(sigs[0]);
+	}
+	
+	
+	if (loadedPost.find(".community-wiki").length > 0) {
+		owner = {
+			user_id: -1,
+			display_name: (ownerSig.find("a").text() || "") .split(/\n/)[1] || "Community"
+		}
+	} else {
+		owner = {
+			display_name: ownerSig.find(".user-details a").text(),
+			user_id: +((ownerSig.find(".user-details a").attr("href") || "").split(/\//g)[2] || -1)
+		};
+	}
+	
     return {
-      id: id,
-      title: title,
-      type: type,
-      html: html,
+      post_id: id,
+      post_type: type,
+      body: $.trim(loadedPost.find(".post-text").html()),
+	  comment_count: +(loadedPost.find(".comments-link b").text() || 0),
+	  owner: owner,
+	  
+	  editor: editor,
+	  
+	  is_deleted: loadedPost.find(".deleted-answer").length > 0,
+	  
+      title: loadedPost.find("h3").first().text(),
       tags: tags,
-      askTime: askTime,
-      url: url,
-      score: score,
-      favoriteCount: favoriteCount,
-      
-      owner: {
-        id: ownerId,
-        name: ownerName,
-        url: ownerUrl
-      },
-      
-      editor: {
-        id: editorId,
-        name: editorName,
-        url: editorUrl
-      },
-      
-      states: {
-        "locked": {
-         
-        }
-      }
-      locked: locked,
-      lockers: lockers,
-      
+	  favorite_count: favoriteCount,
     };
   });
 };
 
-var siteName = document.title.split(/\ - /)[1];
-document.title = "Stack Dump - Tools - " + siteName;
 
-var content = $("#content").empty();
+main();
 
-$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a> <span style='opacity: 0.5; font-size: 0.5em;'>(<a href='https://gist.github.com/raw/54559d41cc8041ebc534/dump.user.js'>update/install</a>)</span></h1></div>").appendTo(content);
-
-
-_getPost(1).then(function(o) {
-  console.log(o);
-});
- 
 });
