@@ -32,7 +32,7 @@ var API_KEY = "CtBYNg0K2ALoGmQ2MalrMw((";
 var DOMAIN = location.host;
 
 var blobify = function(o) {
-	var s = JSON.stringify(o);
+	var s = JSON.stringify(o, null, "  ");
 	var bb = new BlobBuilder;
 	bb.append(s);
 	return bb.getBlob("application/json");
@@ -44,7 +44,7 @@ var main = function() {
 	var content = $("#content").empty();
 	$("<div class='subheader'><h1><a href='/tools/dump'>Stack Dump</a> <span style='opacity: 0.5; font-size: 0.5em;'>(<a href='https://gist.github.com/raw/54559d41cc8041ebc534/dump.user.js'>update/install</a>)</span></h1></div>").appendTo(content);
 	
-	var initialId = 12830, postCount = 100;
+	var initialId = 12900, postCount = 10;
 	
 	// created $.Deferred values to hold each requested posted
 	var requested = [];
@@ -76,7 +76,7 @@ var main = function() {
 
 var getPostByAjaxLoad = function(id) {
   return $.ajax("/posts/" + id + "/ajax-load", { cache: true }).pipe(function(e) {
-    var type, ownerSig, editorSig, editor, owner, isDeleted;
+    var type, body, ownerSig, editorSig, editor, owner, isDeleted;
 	
     var loadedPost = $("<div>").append(e);
     
@@ -86,9 +86,10 @@ var getPostByAjaxLoad = function(id) {
         return $(this).text();
       }).toArray();
 	  favoriteCount = +(loadedPost.find(".favoritecount").text() || 0);
-	  
+	  body = $.trim(loadedPost.find(".post-text").html())
     } else if (url = loadedPost.find(".answer-hyperlink").attr("href")) {
       type = "answer";
+	  body = $.trim(loadedPost.find(".answer .post-text").html())
     } else {
       throw new Error('Unknown post type for post of id ' + id);
     }
@@ -101,23 +102,29 @@ var getPostByAjaxLoad = function(id) {
 		ownerSig = $(sigs[0]);
 	}
 	
-	
 	if (loadedPost.find(".community-wiki").length > 0) {
 		owner = {
 			user_id: -1,
-			display_name: (ownerSig.find("a").text() || "") .split(/\n/)[1] || "Community"
+			display_name: (ownerSig.find("a").text() || "") .split(/\n/)[1] || "Stack Exchange Community"
 		}
 	} else {
 		owner = {
-			display_name: ownerSig.find(".user-details a").text(),
-			user_id: +((ownerSig.find(".user-details a").attr("href") || "").split(/\//g)[2] || -1)
+			user_id: +((ownerSig.find(".user-details a").attr("href") || "").split(/\//g)[2] || -1),
+			display_name: ownerSig.find(".user-details a").text() || "Stack Exchange Community"
+		};
+	}
+	
+	if (sigs.length == 2) {
+		editor = {
+			display_name: editorSig.find(".user-details a").text()  || owner.display_name,
+			user_id: +((editorSig.find(".user-details a").attr("href") || "").split(/\//g)[2] || -1) || owner.user_id // heh
 		};
 	}
 	
     return {
       post_id: id,
       post_type: type,
-      body: $.trim(loadedPost.find(".post-text").html()),
+      body: body,
 	  comment_count: +(loadedPost.find(".comments-link b").text() || 0),
 	  owner: owner,
 	  
