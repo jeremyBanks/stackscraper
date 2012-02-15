@@ -66,27 +66,26 @@ class StackScraper
     @getQuestionDocuments(questionid).pipe (pages) ->
       question = scrapePostElement($('.question', pages[0]))
       question.title = $('#question-header h1 a', pages[0]).text()
-      question.link = $('#question-header h1 a', pages[0]).attr('href')
-      question.tags = $(tag).text() for tag in $('.post-taglist .post-tag', pages[0])
+      question.tags = ($(tag).text() for tag in $('.post-taglist .post-tag', pages[0]))
       question.favorite_count = +($('.favoritecount', pages[0]).text() ? 0)
       question.answers = []
       
       for page$ in pages
-        for answer in page$
-          question.answers.push scrapePostElement answer
+        for answer in page$.find('.answer')
+          question.answers.push scrapePostElement $(answer)
       
       question
   
   getQuestionDocuments: (questionid) ->
-    @ajax("/questions/#{questionid}").pipe (firstSource) ->
+    @ajax("/questions/#{questionid}").pipe (firstSource) =>
       firstPage$ = $(makeDocument(firstSource))
       
       # if there are multiple pages, request 'em all.
       if lastPageNav$ = $(".page-numbers:not(.next)").last()
-        pageCount = +lastPage$.text()
+        pageCount = +lastPageNav$.text()
         
         $.when(firstPage$, (for pageNumber in [2..pageCount]
-          @ajax("/questions/#{quesetionid}?page#{pageNumber}").pipe (source) ->
+          @ajax("/questions/#{questionid}?page=#{pageNumber}").pipe (source) ->
             $(makeDocument(source))
         )...).pipe (pages...) -> pages
       else
@@ -100,7 +99,7 @@ class StackScraper
         is_accepted: post$.find('.vote-accepted-on').length isnt 0
     else
       post =
-        post_id: +post$.data('questionid')
+        post_id: +post$.data('answerid')
         post_type: 'answer'
       
     post.body = $.trim post$.find('.post-text').html()
@@ -115,7 +114,7 @@ class StackScraper
       [ownerSig] = sigs
       
     if communityOwnage$ = post$.find('.community-wiki')
-      post.community_owned_date_s = communityOwnage$.attr('title').match(/As of ([^\.])./)[1]
+      post.community_owned_date_s = communityOwnage$.attr('title').match(/as of ([^\.]+)./)[1]
     else
       if ownerSig? and not communityOwnage$
         post.owner =
@@ -131,22 +130,22 @@ class StackScraper
           reputation: $('.reputation-score', editorSig).text().replace(/,/g, '')
           profile_image: $('.user-gravatar32 img').attr('src')
       
-    if editorSig? and editTime$ = $('.relativetime', editorSig)
+    if editorSig? and (editTime$ = $('.relativetime', editorSig)).length
       post.last_edit_date_s = editTime$.text()
       post.last_edit_date_z = editTime$.attr('title')
       
-    if ownerSig? and creationTime$ = $('.relativetime', ownerSig)
-      post.creation_date_s = ownerSig$.text()
-      post.creation_date_z = ownerSig$.attr('title')
+    if ownerSig? and (creationTime$ = $('.relativetime', ownerSig)).length
+      post.creation_date_s = creationTime$.text()
+      post.creation_date_z = creationTime$.attr('title')
     
-      post
+    post
   
   # be nice: wrap $.ajax to add our throttle and header.
-  ajax: (makeThrottle 500) (url, options = {}) ->   
+  ajax: (makeThrottle 500) (url, options = {}) ->
     existingBeforeSend = options.beforeSend;
     options.beforeSend = (request) ->
       request.setRequestHeader 'X-StackScraper-Version', '0.0.1'
-      return existingBeforeSend.apply this, arguments
+      return existingBeforeSend?.apply this, arguments
     $.ajax(url, options)
 
 scraper = new StackScraper
