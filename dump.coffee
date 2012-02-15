@@ -1,3 +1,25 @@
+`// ==UserScript==
+// @name           StackScraper
+// @version        0.0.1
+// @namespace      http://extensions.github.com/stackscraper/
+// @description    Allows 10k users to export deleted questions as JSON. Maybe other things too.
+// @include        http://*.stackexchange.com/*
+// @include        http://stackoverflow.com/*
+// @include        http://*.stackoverflow.com/*
+// @include        http://superuser.com/*
+// @include        http://*.superuser.com/*
+// @include        http://serverfault.com/*
+// @include        http://*.serverfault.com/*
+// @include        http://stackapps.com/*
+// @include        http://*.stackapps.com/*
+// @include        http://askubuntu.com/*
+// @include        http://*.askubuntu.com/*
+// @include        http://answers.onstartups.com/*
+// @include        http://*.answers.onstartups.com/*
+// ==/UserScript==
+`
+# jQuerys are suffixied with $, Promises suffixed with P
+
 BlobBuilder = @BlobBuilder or @WebKitBlobBuilder or @MozBlobBuilder or @OBlobBuilder
 URL = @URL or @webkitURL or @mozURL or @oURL
 
@@ -10,95 +32,122 @@ makeThrottle = (interval) ->
     throttled = ->
       thisVal = this
       argVals = arguments
-      result = new $.Deferred
+      resultP = new $.Deferred
       
       if intervalId?
-        queue.push [f, thisVal, argVals, result]
+        queue.push [f, thisVal, argVals, resultP]
       else
-        $.when(f.apply thisVal, argVals).then(result.resolve, result.reject, result.notify)
+        $.when(f.apply thisVal, argVals).then(resultP.resolve, resultP.reject, resultP.notify)
         intervalId = setInterval ->
           if queue.length
-            [f_, thisVal_, argVals_, result_] = queue.shift()
-            $.when(f_.apply thisVal_, argVals_).then(result_.resolve, result_.reject, result_.notify)
+            [f_, thisVal_, argVals_, resultP_] = queue.shift()
+            $.when(f_.apply thisVal_, argVals_).then(resultP_.resolve, resultP_.reject, resultP_.notify)
           else
             clearInterval intervalId
             intervalId = null
         , interval
       
-      result
+      resultP
 
-# creates a new object using the specified object as a prototype
-spawn = (parent) -> (con = ->):: = parent; new con
+makeDocument = (html, title = '') ->
+  doc = document.implementation.createHTMLDocument(title)
+  if html? then doc.head.parentElement.innerHTML = html
+  doc
 
 class StackScraper
   constructor: ->
-    @posts = {} # an individual post, just what's visible on the page
-    @questions = {} # a complete question
+    @posts = {}
   
-  throttle = makeThrottle(2000)
+  getQuestion: (questionid) ->
+    @getShallowQuestion(questionid).pipe (shallowQuestion) ->
+      shallowQuestion
   
-  loadQuestionPage: throttle (postid, fromPage = 1) ->
-    # Loads the question page that a specified post is visible on.
-    # The page argument is only relevant if postid is a question id.
-    $.ajax("/questions/#{postid}#{if fromPage != 1 then "?page=#{fromPage}" else ''}", beforeSend: (request) ->
-      # AJAX can't set a User-Agent, so at least give them *something* to block
-      request.setRequestHeader 'X-Stack-Scraper', '0.0.0'
-    ).pipe (source) =>
-      # Load source into a new document so it doesn't mess up this one.
-      page = $(document.implementation.createHTMLDocument("").body.parentElement)
-      page[0].innerHTML = source
+  getShallowQuestion: (questionid) ->
+    @getQuestionDocuments(questionid).pipe (pages) ->
+      question = scrapePostElement($('.question', pages[0]))
+      question.title = $('#question-header h1 a', pages[0]).text()
+      question.link = $('#question-header h1 a', pages[0]).attr('href')
+      question.tags = $(tag).text() for tag in $('.post-taglist .post-tag', pages[0])
+      question.favorite_count = +($('.favoritecount', pages[0]).text() ? 0)
+      question.answers = []
       
-      unless (reps = page.find('#hlinks-user .reputation-score').text())? and +reps.replace(/,/g, '') > 10000
-        return new $.Deferred -> @reject '10k reputation required'
+      for page$ in pages
+        for answer in page$
+          question.answers.push scrapePostElement answer
       
-      console.log 'yo'
+      question
+  
+  getQuestionDocuments: (questionid) ->
+    @ajax("/questions/#{questionid}").pipe (firstSource) ->
+      firstPage$ = $(makeDocument(firstSource))
       
-      for postElement in page.find('.question, .answer')
-        $post = $(postElement)
+      # if there are multiple pages, request 'em all.
+      if lastPageNav$ = $(".page-numbers:not(.next)").last()
+        pageCount = +lastPage$.text()
         
-        if is_question = $post.is('.question')
-          postid = +$post.data('questionid')
-        else
-          postid = +$post.data('questionid')
+        $.when(firstPage$, (for pageNumber in [2..pageCount]
+          @ajax("/questions/#{quesetionid}?page#{pageNumber}").pipe (source) ->
+            $(makeDocument(source))
+        )...).pipe (pages...) -> pages
+      else
+        [firstPage$]
+  
+  scrapePostElement = (post$) ->
+    if is_question = post$.is('.question')
+      post =
+        post_id: +post$.data('questionid')
+        post_type: 'question'
+        is_accepted: post$.find('.vote-accepted-on').length isnt 0
+    else
+      post =
+        post_id: +post$.data('questionid')
+        post_type: 'answer'
+      
+    post.body = $.trim post$.find('.post-text').html()
+    post.score = +post$.find('.vote-count-post').text()
+    post.deleted = post$.is('.deleted-question, .deleted-answer')
+      
+    sigs = post$.find('.post-signature')
+    if sigs.length is 2
+      [editorSig, ownerSig] = sigs
+    else
+      editorSig = null
+      [ownerSig] = sigs
+      
+    if communityOwnage$ = post$.find('.community-wiki')
+      post.community_owned_date_s = communityOwnage$.attr('title').match(/As of ([^\.])./)[1]
+    else
+      if ownerSig? and not communityOwnage$
+        post.owner =
+          user_id: +$('.user-details a', ownerSig).split(/\//g)[2]
+          display_name: $('.user-details a', ownerSig).text()
+          reputation: $('.reputation-score', ownerSig).text().replace(/,/g, '')
+          profile_image: $('.user-gravatar32 img').attr('src')
         
-        post = @posts[postid] ?= post_id: postid
-        post.body = $.trim $post.find('.post-text').html()
-        post.score = +$post.find('.vote-count-post').text()
-        post.deleted = $post.is('.deleted-question, .deleted-answer')
-        
-        if is_question
-          post.post_type = 'question'
-          post.title = page.find('#question-header h1 a').text()
-          post.link = page.find('#question-header h1 a').attr('href')
-          post.tags = $(tag).text() for tag in $post.find(".post-taglist .post-tag")
-          post.favorite_count = +($post.find(".favoritecount").text() ? 0)
-        else
-          post.post_type = 'answer'
+      if editorSig? and not communityOwnage$
+        post.last_editor =
+          user_id: +$('.user-details a', editorSig).split(/\//g)[2]
+          display_name: $('.user-details a', editorSig).text()
+          reputation: $('.reputation-score', editorSig).text().replace(/,/g, '')
+          profile_image: $('.user-gravatar32 img').attr('src')
       
-        # actually, just fetch everything as soon as it's known-of.
+    if editorSig? and editTime$ = $('.relativetime', editorSig)
+      post.last_edit_date_s = editTime$.text()
+      post.last_edit_date_z = editTime$.attr('title')
       
-      page
+    if ownerSig? and creationTime$ = $('.relativetime', ownerSig)
+      post.creation_date_s = ownerSig$.text()
+      post.creation_date_z = ownerSig$.attr('title')
+    
+      post
   
-  reqPost: (postid) ->
-    if postid of @posts
-      return $.when @posts[postid]
-    
-    @loadQuestionPage(postid).pipe => @posts[postid]
-  
-  reqQuestion: (questionid) ->
-    result = new $.Deferred
-    
-    if questionid of @questions
-      return $.when @posts[questionid]
-    
-    @loadQuestionPage(postid).pipe =>
-      
-    
-    result
-  
+  # be nice: wrap $.ajax to add our throttle and header.
+  ajax: (makeThrottle 500) (url, options = {}) ->   
+    existingBeforeSend = options.beforeSend;
+    options.beforeSend = (request) ->
+      request.setRequestHeader 'X-StackScraper-Version', '0.0.1'
+      return existingBeforeSend.apply this, arguments
+    $.ajax(url, options)
+
 scraper = new StackScraper
-scraper.reqPost(12907).then (x) -> console.log x
-
-@posts = scraper.posts
-# Okay, how about: each post has a normal Post result as well as a PostWithReplies object which uses the original as a prototype?
-
+scraper.getShallowQuestion(12830).then (x) -> console.log(x)
