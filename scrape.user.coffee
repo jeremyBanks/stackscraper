@@ -61,6 +61,10 @@ class StackScraper
   getQuestion: (questionid) ->
     @getShallowQuestion(questionid).pipe (shallowQuestion) ->
       shallowQuestion
+      # + /vote-counts
+      # + /comments
+      # + /edit (markdown source)
+      # + get all /revision guids, messages and editor infos (generisize multi-page lookups for this)
   
   getShallowQuestion: (questionid) ->
     @getQuestionDocuments(questionid).pipe (pages) ->
@@ -69,27 +73,27 @@ class StackScraper
       question.tags = ($(tag).text() for tag in $('.post-taglist .post-tag', pages[0]))
       question.favorite_count = +($('.favoritecount', pages[0]).text() ? 0)
       question.answers = []
+      question.closed = false
+      question.locked = false
+      question.protected = false
+      for status in pages[0].find('.question-status')
+        type = $('b', status).text()
+        if type is 'closed' then question.closed = true
+        if type is 'locked' then question.locked = true
+        if type is 'protected' then question.protected = true
+      
+      for row in $('#qinfo tr', pages[0])
+        key = $('.label-key', row).first().text()
+        if key is 'asked'
+          question.creation_date_z = $('.label-key', row).last().attr('title')
+        if key is 'viewed'
+          question.view_count = +$('.label-key', row).last().attr('title')
       
       for page$ in pages
         for answer in page$.find('.answer')
           question.answers.push scrapePostElement $(answer)
       
       question
-  
-  getQuestionDocuments: (questionid) ->
-    @ajax("/questions/#{questionid}").pipe (firstSource) =>
-      firstPage$ = $(makeDocument(firstSource))
-      
-      # if there are multiple pages, request 'em all.
-      if lastPageNav$ = $(".page-numbers:not(.next)").last()
-        pageCount = +lastPageNav$.text()
-        
-        $.when(firstPage$, (for pageNumber in [2..pageCount]
-          @ajax("/questions/#{questionid}?page=#{pageNumber}").pipe (source) ->
-            $(makeDocument(source))
-        )...).pipe (pages...) -> pages
-      else
-        [firstPage$]
   
   scrapePostElement = (post$) ->
     if is_question = post$.is('.question')
@@ -139,6 +143,21 @@ class StackScraper
       post.creation_date_z = creationTime$.attr('title')
     
     post
+  
+  getQuestionDocuments: (questionid) ->
+    @ajax("/questions/#{questionid}").pipe (firstSource) =>
+      firstPage$ = $(makeDocument(firstSource))
+      
+      # if there are multiple pages, request 'em all.
+      if lastPageNav$ = $(".page-numbers:not(.next)").last()
+        pageCount = +lastPageNav$.text()
+        
+        $.when(firstPage$, (for pageNumber in [2..pageCount]
+          @ajax("/questions/#{questionid}?page=#{pageNumber}").pipe (source) ->
+            $(makeDocument(source))
+        )...).pipe (pages...) -> pages
+      else
+        [firstPage$]
   
   # be nice: wrap $.ajax to add our throttle and header.
   ajax: (makeThrottle 500) (url, options = {}) ->
