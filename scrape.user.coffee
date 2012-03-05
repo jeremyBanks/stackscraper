@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.0.6
+// @version        0.0.7
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -225,7 +225,7 @@ execute ->
             score: +($.trim($('.comment-score', @).text()) ? 0)
             body: $.trim($('.comment-copy', @).text())
             user_id: +$('a.comment-user', @).attr('href').split(/\//g)[2]
-            display_name: $('a.comment-user', @).text()
+            display_name: $($('a.comment-user', @)[0].childNodes[0]).text()
         postComments
     
     getPostVoteCount: (postid) ->
@@ -237,7 +237,7 @@ execute ->
       existingBeforeSend = options.beforeSend;
       options.cache ?= true
       options.beforeSend = (request) ->
-        request.setRequestHeader 'X-StackScraper-Version', '0.0.6'
+        request.setRequestHeader 'X-StackScraper-Version', '0.0.7'
         return existingBeforeSend?.apply this, arguments
       $.ajax(url, options)
 
