@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.0.6
+// @version        0.0.7
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -294,7 +294,7 @@ execute(function() {
             score: +((_ref = $.trim($('.comment-score', this).text())) != null ? _ref : 0),
             body: $.trim($('.comment-copy', this).text()),
             user_id: +$('a.comment-user', this).attr('href').split(/\//g)[2],
-            display_name: $('a.comment-user', this).text()
+            display_name: $($('a.comment-user', this)[0].childNodes[0]).text()
           });
         });
         return postComments;
@@ -319,7 +319,7 @@ execute(function() {
       existingBeforeSend = options.beforeSend;
       if (options.cache == null) options.cache = true;
       options.beforeSend = function(request) {
-        request.setRequestHeader('X-StackScraper-Version', '0.0.6');
+        request.setRequestHeader('X-StackScraper-Version', '0.0.7');
         return existingBeforeSend != null ? existingBeforeSend.apply(this, arguments) : void 0;
       };
       return $.ajax(url, options);
