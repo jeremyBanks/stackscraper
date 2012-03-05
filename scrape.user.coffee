@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.0.5
+// @version        0.0.6
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -48,6 +48,7 @@ loadAndExecute = (url, functionOrCode) ->
     load url, -> execute functionOrCode
 
 execute ->
+  `__slice = Array.prototype.slice`
   BlobBuilder = @BlobBuilder or @WebKitBlobBuilder or @MozBlobBuilder or @OBlobBuilder
   URL = @URL or @webkitURL or @mozURL or @oURL
 
@@ -236,7 +237,7 @@ execute ->
       existingBeforeSend = options.beforeSend;
       options.cache ?= true
       options.beforeSend = (request) ->
-        request.setRequestHeader 'X-StackScraper-Version', '0.0.5'
+        request.setRequestHeader 'X-StackScraper-Version', '0.0.6'
         return existingBeforeSend?.apply this, arguments
       $.ajax(url, options)
 

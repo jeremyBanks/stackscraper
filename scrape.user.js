@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.0.5
+// @version        0.0.6
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -52,6 +52,8 @@ loadAndExecute = function(url, functionOrCode) {
 };
 
 execute(function() {
+  __slice = Array.prototype.slice;
+
   var BlobBuilder, StackScraper, URL, makeDocument, makeThrottle, stackScraper;
   BlobBuilder = this.BlobBuilder || this.WebKitBlobBuilder || this.MozBlobBuilder || this.OBlobBuilder;
   URL = this.URL || this.webkitURL || this.mozURL || this.oURL;
@@ -317,7 +319,7 @@ execute(function() {
       existingBeforeSend = options.beforeSend;
       if (options.cache == null) options.cache = true;
       options.beforeSend = function(request) {
-        request.setRequestHeader('X-StackScraper-Version', '0.0.5');
+        request.setRequestHeader('X-StackScraper-Version', '0.0.6');
         return existingBeforeSend != null ? existingBeforeSend.apply(this, arguments) : void 0;
       };
       return $.ajax(url, options);
