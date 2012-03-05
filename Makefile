@@ -1,2 +1,2 @@
 all:
-	coffee --print --bare --compile scrape.user.coffee | pbcopy
+	coffee --bare --compile scrape.user.coffee

@@ -1,24 +1,24 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.0.1
+// @version        0.0.2
 // @namespace      http://extensions.github.com/stackscraper/
-// @description    Allows 10k users to export deleted questions as JSON. Maybe other things too.
-// @include        http://*.stackexchange.com/*
-// @include        http://stackoverflow.com/*
-// @include        http://*.stackoverflow.com/*
-// @include        http://superuser.com/*
-// @include        http://*.superuser.com/*
-// @include        http://serverfault.com/*
-// @include        http://*.serverfault.com/*
-// @include        http://stackapps.com/*
-// @include        http://*.stackapps.com/*
-// @include        http://askubuntu.com/*
-// @include        http://*.askubuntu.com/*
-// @include        http://answers.onstartups.com/*
-// @include        http://*.answers.onstartups.com/*
+// @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
+// @include        http://*.stackexchange.com/questions/*
+// @include        http://stackoverflow.com/questions/*
+// @include        http://*.stackoverflow.com/questions/*
+// @include        http://superuser.com/questions/*
+// @include        http://*.superuser.com/questions/*
+// @include        http://serverfault.com/questions/*
+// @include        http://*.serverfault.com/questions/*
+// @include        http://stackapps.com/questions/*
+// @include        http://*.stackapps.com/questions/*
+// @include        http://askubuntu.com/questions/*
+// @include        http://*.askubuntu.com/questions/*
+// @include        http://answers.onstartups.com/questions/*
+// @include        http://*.answers.onstartups.com/questions/*
 // ==/UserScript==
 `
-# jQuerys are suffixied with $, Promises suffixed with P
+# jQuerys are suffixied with $, Promises (including Deferreds) suffixed with P
 
 BlobBuilder = @BlobBuilder or @WebKitBlobBuilder or @MozBlobBuilder or @OBlobBuilder
 URL = @URL or @webkitURL or @mozURL or @oURL
@@ -55,16 +55,36 @@ makeDocument = (html, title = '') ->
   doc
 
 class StackScraper
-  constructor: ->
-    @posts = {}
-  
   getQuestion: (questionid) ->
-    @getShallowQuestion(questionid).pipe (shallowQuestion) ->
-      shallowQuestion
-      # + /vote-counts
-      # + /comments
-      # + /edit (markdown source)
-      # + get all /revision guids, messages and editor infos (generisize multi-page lookups for this)
+    @getShallowQuestion(questionid).pipe (question) =>
+      tasks = []
+      
+      for post in [question].concat(question.answers)
+        do (post) =>
+          tasks.push @getPostSource(post.post_id, null).pipe( (postSource) =>
+            post.title_source = postSource.title
+            post.body_source = postSource.body
+            post
+          )
+          
+          tasks.push @getPostComments(post.post_id).pipe( (postComments) =>
+            post.comments = postComments
+            post
+          )
+          
+          tasks.push @getPostVoteCount(post.post_id).pipe( (voteCount) =>
+            post.up_votes = voteCount.up
+            post.down_votes = voteCount.down
+            post
+          )
+      
+      questionP = new $.Deferred
+      
+      $.when(tasks...).then =>
+        questionP.resolve question
+      , questionP.reject
+      
+      questionP.promise()
   
   getShallowQuestion: (questionid) ->
     @getQuestionDocuments(questionid).pipe (pages) ->
@@ -118,7 +138,7 @@ class StackScraper
       [ownerSig] = sigs
       
     if communityOwnage$ = post$.find('.community-wiki')
-      post.community_owned_date_s = communityOwnage$.attr('title').match(/as of ([^\.]+)./)[1]
+      post.community_owned_date_s = communityOwnage$.attr('title')?.match(/as of ([^\.]+)./)[1]
     else
       if ownerSig? and not communityOwnage$
         post.owner =
@@ -149,7 +169,7 @@ class StackScraper
       firstPage$ = $(makeDocument(firstSource))
       
       # if there are multiple pages, request 'em all.
-      if lastPageNav$ = $(".page-numbers:not(.next)").last()
+      if lastPageNav$ = $('.page-numbers:not(.next)').last()
         pageCount = +lastPageNav$.text()
         
         $.when(firstPage$, (for pageNumber in [2..pageCount]
@@ -159,13 +179,36 @@ class StackScraper
       else
         [firstPage$]
   
+  getPostSource: (postid, revisionguid = null) ->
+    @ajax("/posts/#{postid}/edit#{if revisionguid then "/#{revisionguid}" else ''}").pipe (editPageSource) =>
+      sourcePage$ = $(makeDocument(editPageSource))
+      postSource =
+        title: $('[name=title]', sourcePage$).val()
+        body: $('[name=post-text]', sourcePage$).val()
+  
+  getPostComments: (postid) ->
+    @ajax("/posts/#{postid}/comments").pipe (commentsSource) =>
+      commentPage$ = $(makeDocument("<body><table>#{commentsSource}</table></body>"))
+  
+  getPostVoteCount: (postid) ->
+    @ajax("/posts/#{postid}/vote-counts", dataType: 'json').pipe (voteCounts) =>
+      (up: +voteCounts.up, down: +voteCounts.down)
+  
   # be nice: wrap $.ajax to add our throttle and header.
   ajax: (makeThrottle 500) (url, options = {}) ->
     existingBeforeSend = options.beforeSend;
     options.beforeSend = (request) ->
-      request.setRequestHeader 'X-StackScraper-Version', '0.0.1'
+      request.setRequestHeader 'X-StackScraper-Version', '0.0.2'
       return existingBeforeSend?.apply this, arguments
     $.ajax(url, options)
 
-scraper = new StackScraper
-scraper.getShallowQuestion(12830).then (x) -> console.log(x)
+@stackScraper = stackScraper = new StackScraper
+
+$('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">download</a>').click ->
+  questionId = $('#question').data('questionid')
+  stackScraper.getQuestion(questionId).then (question) ->
+    bb = new BlobBuilder
+    bb.append JSON.stringify(question, 4)
+    window.location = URL.createObjectURL(bb.getBlob())
+  
+  false
