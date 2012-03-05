@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.2.0
+// @version        0.2.4
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
-// @include        http://*.stackexchange.com/questions/*
-// @include        http://stackoverflow.com/questions/*
-// @include        http://*.stackoverflow.com/questions/*
-// @include        http://superuser.com/questions/*
-// @include        http://*.superuser.com/questions/*
-// @include        http://serverfault.com/questions/*
-// @include        http://*.serverfault.com/questions/*
-// @include        http://stackapps.com/questions/*
-// @include        http://*.stackapps.com/questions/*
-// @include        http://askubuntu.com/questions/*
-// @include        http://*.askubuntu.com/questions/*
-// @include        http://answers.onstartups.com/questions/*
-// @include        http://*.answers.onstartups.com/questions/*
+// @include        *://*.stackexchange.com/questions/*
+// @include        *://stackoverflow.com/questions/*
+// @include        *://*.stackoverflow.com/questions/*
+// @include        *://superuser.com/questions/*
+// @include        *://*.superuser.com/questions/*
+// @include        *://serverfault.com/questions/*
+// @include        *://*.serverfault.com/questions/*
+// @include        *://stackapps.com/questions/*
+// @include        *://*.stackapps.com/questions/*
+// @include        *://askubuntu.com/questions/*
+// @include        *://*.askubuntu.com/questions/*
+// @include        *://answers.onstartups.com/questions/*
+// @include        *://*.answers.onstartups.com/questions/*
 // ==/UserScript==
 ;
 
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.2.0',
+  version: '0.2.4',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'https://github.com/extensions/stackscraper/',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -131,15 +131,24 @@ body = function(manifest) {
             post.title_source = postSource.title;
             post.body_source = postSource.body;
             return post;
+          }, function() {
+            console.warn("unable to retrieve source of post " + post.post_id);
+            return (new $.Deferred).resolve();
           }));
           tasks.push(_this.getPostComments(post.post_id).pipe(function(postComments) {
             post.comments = postComments;
             return post;
+          }, function() {
+            console.warn("unable to retrieve comments on post " + post.post_id);
+            return (new $.Deferred).resolve();
           }));
           return tasks.push(_this.getPostVoteCount(post.post_id).pipe(function(voteCount) {
             post.up_votes = voteCount.up;
             post.down_votes = voteCount.down;
             return post;
+          }, function() {
+            console.warn("unable to retrieve vote counts of post " + post.post_id);
+            return (new $.Deferred).resolve();
           }));
         };
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -237,7 +246,7 @@ body = function(manifest) {
             user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', ownerSig).text(),
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, ''),
-            profile_image: $('.user-gravatar32 img').attr('src')
+            profile_image: $('.user-gravatar32 img', ownerSig).attr('src')
           };
         }
         if ((!communityOwnage$.length) && (editorSig != null) && $('.user-details a', editorSig).length) {
@@ -245,7 +254,7 @@ body = function(manifest) {
             user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', editorSig).text(),
             reputation: $('.reputation-score', editorSig).text().replace(/,/g, ''),
-            profile_image: $('.user-gravatar32 img').attr('src')
+            profile_image: $('.user-gravatar32 img', editorSig).attr('src')
           };
         }
       }
@@ -370,7 +379,7 @@ body = function(manifest) {
       _results = [];
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
         answer = _ref2[_i];
-        _results.push(("<div class=\"answer post\" id=\"" + (encodeHTMLText(answer.post_id)) + "\">\n  <div class=\"score\">\n    <span class=\"value\">" + question.score + "</span>\n    <span class=\"unit\">votes</span>\n  </div>\n  <div class=\"col\">\n    <div class=\"body\">\n      " + answer.body + "\n    </div>") + (answer.owner || answer.creation_date_s ? "  <div class=\"attribution\">\n    answered " + (answer.owner ? "by <a href=\"/u/" + (encodeHTMLText(question.owner.user_id)) + "\">" + (encodeHTMLText(answer.owner.display_name)) + "<img src=\"" + (encodeHTMLText(answer.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + answer.creation_date_s + "\n</div>" : '') + (answer.last_edit_date_s || answer.last_editor ? "  <div class=\"attribution\">\n    edited " + (question.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(answer.last_editor.user_id)) + "\">" + (encodeHTMLText(answer.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(answer.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + (encodeHTMLText(answer.last_edit_date_s)) + "\n</div>" : '') + "</div>\n<div style=\"clear: both;\"></div>\n</div>");
+        _results.push(("<div class=\"answer post\" id=\"" + (encodeHTMLText(answer.post_id)) + "\">\n  <div class=\"score\">\n    <span class=\"value\">" + answer.score + "</span>\n    <span class=\"unit\">votes</span>\n  </div>\n  <div class=\"col\">\n    <div class=\"body\">\n      " + answer.body + "\n    </div>") + (answer.owner || answer.creation_date_s ? "  <div class=\"attribution\">\n    answered " + (answer.owner ? "by <a href=\"/u/" + (encodeHTMLText(answer.owner.user_id)) + "\">" + (encodeHTMLText(answer.owner.display_name)) + "<img src=\"" + (encodeHTMLText(answer.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + answer.creation_date_s + "\n</div>" : '') + (answer.last_edit_date_s || answer.last_editor ? "  <div class=\"attribution\">\n    edited " + (answer.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(answer.last_editor.user_id)) + "\">" + (encodeHTMLText(answer.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(answer.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + (encodeHTMLText(answer.last_edit_date_s)) + "\n</div>" : '') + "</div>\n<div style=\"clear: both;\"></div>\n</div>");
       }
       return _results;
     })()).join('\n') + ("</div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (encodeHTMLText(manifest.homepage_url)) + "\">StackScraper</a></a>\n  </div>\n</body>\n</html>");

@@ -1,27 +1,27 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.2.1
+// @version        0.2.4
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
-// @include        http://*.stackexchange.com/questions/*
-// @include        http://stackoverflow.com/questions/*
-// @include        http://*.stackoverflow.com/questions/*
-// @include        http://superuser.com/questions/*
-// @include        http://*.superuser.com/questions/*
-// @include        http://serverfault.com/questions/*
-// @include        http://*.serverfault.com/questions/*
-// @include        http://stackapps.com/questions/*
-// @include        http://*.stackapps.com/questions/*
-// @include        http://askubuntu.com/questions/*
-// @include        http://*.askubuntu.com/questions/*
-// @include        http://answers.onstartups.com/questions/*
-// @include        http://*.answers.onstartups.com/questions/*
+// @include        *://*.stackexchange.com/questions/*
+// @include        *://stackoverflow.com/questions/*
+// @include        *://*.stackoverflow.com/questions/*
+// @include        *://superuser.com/questions/*
+// @include        *://*.superuser.com/questions/*
+// @include        *://serverfault.com/questions/*
+// @include        *://*.serverfault.com/questions/*
+// @include        *://stackapps.com/questions/*
+// @include        *://*.stackapps.com/questions/*
+// @include        *://askubuntu.com/questions/*
+// @include        *://*.askubuntu.com/questions/*
+// @include        *://answers.onstartups.com/questions/*
+// @include        *://*.answers.onstartups.com/questions/*
 // ==/UserScript==
 `
 
 manifest = 
   name: 'StackScraper'
-  version: '0.2.1'
+  version: '0.2.4'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'https://github.com/extensions/stackscraper/'
   permissions: [
@@ -113,17 +113,26 @@ body = (manifest) ->
               post.title_source = postSource.title
               post.body_source = postSource.body
               post
+            , ->
+              console.warn "unable to retrieve source of post #{post.post_id}"
+              (new $.Deferred).resolve()
             )
-          
+            
             tasks.push @getPostComments(post.post_id).pipe( (postComments) =>
               post.comments = postComments
               post
+            , ->
+              console.warn "unable to retrieve comments on post #{post.post_id}"
+              (new $.Deferred).resolve()
             )
-          
+            
             tasks.push @getPostVoteCount(post.post_id).pipe( (voteCount) =>
               post.up_votes = voteCount.up
               post.down_votes = voteCount.down
               post
+            , ->
+              console.warn "unable to retrieve vote counts of post #{post.post_id}"
+              (new $.Deferred).resolve()
             )
       
         questionP = new $.Deferred
@@ -193,14 +202,14 @@ body = (manifest) ->
             user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', ownerSig).text()
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, '')
-            profile_image: $('.user-gravatar32 img').attr('src')
+            profile_image: $('.user-gravatar32 img', ownerSig).attr('src')
         
         if (not communityOwnage$.length) and editorSig? and $('.user-details a', editorSig).length
           post.last_editor =
             user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', editorSig).text()
             reputation: $('.reputation-score', editorSig).text().replace(/,/g, '')
-            profile_image: $('.user-gravatar32 img').attr('src')
+            profile_image: $('.user-gravatar32 img', editorSig).attr('src')
       
       if editorSig? and (editTime$ = $('.relativetime', editorSig)).length
         post.last_edit_date_s = editTime$.text()
@@ -508,7 +517,7 @@ body = (manifest) ->
       """
       <div class="answer post" id="#{encodeHTMLText answer.post_id}">
         <div class="score">
-          <span class="value">#{question.score}</span>
+          <span class="value">#{answer.score}</span>
           <span class="unit">votes</span>
         </div>
         <div class="col">
@@ -519,14 +528,14 @@ body = (manifest) ->
         (if answer.owner or answer.creation_date_s then """
           <div class="attribution">
             answered #{if answer.owner
-              "by <a href=\"/u/#{encodeHTMLText question.owner.user_id}\">#{encodeHTMLText answer.owner.display_name}<img src=\"#{encodeHTMLText answer.owner.profile_image}\" alt=\"\" /></a><br>"
+              "by <a href=\"/u/#{encodeHTMLText answer.owner.user_id}\">#{encodeHTMLText answer.owner.display_name}<img src=\"#{encodeHTMLText answer.owner.profile_image}\" alt=\"\" /></a><br>"
             else '<br>'}
              #{answer.creation_date_s}
         </div>
         """ else '') + 
         (if answer.last_edit_date_s or answer.last_editor then """
           <div class="attribution">
-            edited #{if question.last_editor
+            edited #{if answer.last_editor
               "by <a href=\"/u/#{encodeHTMLText answer.last_editor.user_id}\">#{encodeHTMLText answer.last_editor.display_name}<img src=\"#{encodeHTMLText answer.last_editor.profile_image}\" alt=\"\" /></a><br>"
             else '<br>'}
              #{encodeHTMLText answer.last_edit_date_s}
