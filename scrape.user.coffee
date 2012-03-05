@@ -136,7 +136,7 @@ execute ->
           if key is 'asked'
             question.creation_date_z = $('.label-key', row).last().attr('title')
           if key is 'viewed'
-            question.view_count = +$('.label-key', row).last().attr('title')
+            question.view_count = +$('.label-key', row).last().attr('title').split(' ')[0]
       
         for page$ in pages
           for answer in page$.find('.answer')
