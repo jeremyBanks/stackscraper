@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.2.4
+// @version        0.2.5
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.2.4'
+  version: '0.2.5'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'https://github.com/extensions/stackscraper/'
   permissions: [
@@ -155,7 +155,9 @@ body = (manifest) ->
         question.protected = false
         for status in pages[0].find('.question-status')
           type = $('b', status).text()
-          if type is 'closed' then question.closed = true
+          if type is 'closed'
+            question.closed = true
+            question.title = question.title.replace(/\ \[(closed|migrated)\]$/, '')
           if type is 'locked' then question.locked = true
           if type is 'protected' then question.protected = true
       
@@ -230,7 +232,7 @@ body = (manifest) ->
           pageCount = +lastPageNav$.text()
         
           $.when(firstPage$, (if pageCount > 1 then (for pageNumber in [2..pageCount]
-            @ajax("/questions/#{questionid}?page=#{pageNumber}").pipe (source) ->
+            @ajax("/questions/#{questionid}?page=#{pageNumber}&noredirect=1").pipe (source) ->
               $(makeDocument(source))
           ) else [])...).pipe (pages...) -> pages
         else
@@ -270,7 +272,7 @@ body = (manifest) ->
       $.ajax(url, options)
   
   encodeHTMLText = (text) ->
-    String(text).replace(/&/, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;').replace(/>/, '&gt;').replace(/"/, '&quot;').replace(/"/, '&#39;')
+    String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;')
   
   renderQuestion = (question, base = ('http://' + window?.location?.host)) ->
     """<!doctype html><html>
@@ -435,6 +437,11 @@ body = (manifest) ->
 
     .post .col img {
       max-width: 665px;
+    }
+    
+    blockquote {
+      padding: .5em;
+      background: #EEE;
     }
       
     pre {
