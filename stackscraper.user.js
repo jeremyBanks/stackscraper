@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.2.0
+// @version        0.2.5
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
-// @include        http://*.stackexchange.com/questions/*
-// @include        http://stackoverflow.com/questions/*
-// @include        http://*.stackoverflow.com/questions/*
-// @include        http://superuser.com/questions/*
-// @include        http://*.superuser.com/questions/*
-// @include        http://serverfault.com/questions/*
-// @include        http://*.serverfault.com/questions/*
-// @include        http://stackapps.com/questions/*
-// @include        http://*.stackapps.com/questions/*
-// @include        http://askubuntu.com/questions/*
-// @include        http://*.askubuntu.com/questions/*
-// @include        http://answers.onstartups.com/questions/*
-// @include        http://*.answers.onstartups.com/questions/*
+// @include        *://*.stackexchange.com/questions/*
+// @include        *://stackoverflow.com/questions/*
+// @include        *://*.stackoverflow.com/questions/*
+// @include        *://superuser.com/questions/*
+// @include        *://*.superuser.com/questions/*
+// @include        *://serverfault.com/questions/*
+// @include        *://*.serverfault.com/questions/*
+// @include        *://stackapps.com/questions/*
+// @include        *://*.stackapps.com/questions/*
+// @include        *://askubuntu.com/questions/*
+// @include        *://*.askubuntu.com/questions/*
+// @include        *://answers.onstartups.com/questions/*
+// @include        *://*.answers.onstartups.com/questions/*
 // ==/UserScript==
 ;
 
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.2.0',
+  version: '0.2.5',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'https://github.com/extensions/stackscraper/',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -131,15 +131,24 @@ body = function(manifest) {
             post.title_source = postSource.title;
             post.body_source = postSource.body;
             return post;
+          }, function() {
+            console.warn("unable to retrieve source of post " + post.post_id);
+            return (new $.Deferred).resolve();
           }));
           tasks.push(_this.getPostComments(post.post_id).pipe(function(postComments) {
             post.comments = postComments;
             return post;
+          }, function() {
+            console.warn("unable to retrieve comments on post " + post.post_id);
+            return (new $.Deferred).resolve();
           }));
           return tasks.push(_this.getPostVoteCount(post.post_id).pipe(function(voteCount) {
             post.up_votes = voteCount.up;
             post.down_votes = voteCount.down;
             return post;
+          }, function() {
+            console.warn("unable to retrieve vote counts of post " + post.post_id);
+            return (new $.Deferred).resolve();
           }));
         };
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -178,7 +187,10 @@ body = function(manifest) {
         for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
           status = _ref2[_i];
           type = $('b', status).text();
-          if (type === 'closed') question.closed = true;
+          if (type === 'closed') {
+            question.closed = true;
+            question.title = question.title.replace(/\ \[(closed|migrated)\]$/, '');
+          }
           if (type === 'locked') question.locked = true;
           if (type === 'protected') question.protected = true;
         }
@@ -237,7 +249,7 @@ body = function(manifest) {
             user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', ownerSig).text(),
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, ''),
-            profile_image: $('.user-gravatar32 img').attr('src')
+            profile_image: $('.user-gravatar32 img', ownerSig).attr('src')
           };
         }
         if ((!communityOwnage$.length) && (editorSig != null) && $('.user-details a', editorSig).length) {
@@ -245,7 +257,7 @@ body = function(manifest) {
             user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', editorSig).text(),
             reputation: $('.reputation-score', editorSig).text().replace(/,/g, ''),
-            profile_image: $('.user-gravatar32 img').attr('src')
+            profile_image: $('.user-gravatar32 img', editorSig).attr('src')
           };
         }
       }
@@ -271,7 +283,7 @@ body = function(manifest) {
             var _i, _results;
             _results = [];
             for (pageNumber = _i = 2; 2 <= pageCount ? _i <= pageCount : _i >= pageCount; pageNumber = 2 <= pageCount ? ++_i : --_i) {
-              _results.push(this.ajax("/questions/" + questionid + "?page=" + pageNumber).pipe(function(source) {
+              _results.push(this.ajax("/questions/" + questionid + "?page=" + pageNumber + "&noredirect=1").pipe(function(source) {
                 return $(makeDocument(source));
               }));
             }
@@ -348,14 +360,14 @@ body = function(manifest) {
 
   })();
   encodeHTMLText = function(text) {
-    return String(text).replace(/&/, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;').replace(/>/, '&gt;').replace(/"/, '&quot;').replace(/"/, '&#39;');
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;');
   };
   renderQuestion = function(question, base) {
     var answer, tag, _ref;
     if (base == null) {
       base = 'http://' + (typeof window !== "undefined" && window !== null ? (_ref = window.location) != null ? _ref.host : void 0 : void 0);
     }
-    return ("<!doctype html><html>\n<head>\n  <meta charset=\"utf-8\" />\n  <title>\n    " + (encodeHTMLText(question.title)) + "\n  </title>\n  " + (base ? "<base href=\"" + base + "\" />" : '') + "\n  <style>\n    html {\n      background: #D8D8D8;\n    }\n    \n    body {\n      font: 14px sans-serif;\n    }\n      \n    a, a:visited {\n      color: #226;\n    }\n      \n    .wrapper {\n      width: 735px;\n      margin: 1em auto;\n      background: white;\n      padding: 1em;\n    }\n      \n    h1,h2, h3, h4 {\n      padding-bottom: .2em;\n      border-bottom: 1px solid black;\n      margin-top: 0;\n    }\n      \n    h1 {\n      font-size: 1.6em;\n    }\n    h2 {\n      font-size: 1.4em;\n    }\n    h3 {\n      font-size: 1.2em;\n    }\n      \n      \n    h2.answers {\n      border-bottom: 1px solid black;\n    }\n      \n    .implied-by-style {\n      display: none;\n    }\n      \n    .source-header {\n      display: block;\n      background-color: #EEE;\n      padding: 1em 1em;\n      font-size: 1.3em;\n      font-weight: bold;\n      color: black;\n      text-align: left;\n      margin: 0.5em 0;\n      text-align: center;\n    }\n      \n      .source-header a, .source-header a:visited {\n        color: black;\n      }\n      \n    .post .score {\n      float: left;\n      text-align: center;\n      width: 58px;\n      margin: 0px 0 0;\n      padding: 5px 0;\n      border-right: 1px solid #DDD;\n    }\n      \n    .post + .post {\n        border-top: 1px solid #888;\n        padding-top: 1em;\n        margin-top: 1em;\n    }\n      \n      .post .score .value {\n        display: block;\n        font-weight: bold;\n        font-size: 1.3em;\n        margin: 3px 0 0;\n      }\n        \n      .post .score .unit {\n        display: block;\n        opacity: 0.5;\n      }\n        \n      .post .score .annotation {\n        display: block;\n        font-weight: bold;\n        font-size: 0.8em;\n        opacity: 0.75;\n        margin: 5px 0 0;\n      }\n      \n    .post .tags {\n      list-style-type: none;\n      padding: 0;\n      line-height: 1.75em;\n    }\n      \n      .post .tags li {\n        display: inline;\n        padding: .3em .5em;\n        margin: .2em;\n        border: 1px solid #888;\n        background: #F8F8F4;\n        font-size: .75em;\n      }\n        .post .tags li a {\n          color: inherit;\n          text-decoration: inherit;\n        }\n        \n      .post .body {\n        line-height: 1.3em;\n      }\n      \n      .post .body p, .post .body pre {\n        margin-top: 0;\n      }\n      \n    .post .attribution {  \n      font-size: 11px;\n      height: 4em;\n      float: right;\n      width: 160px;\n      border: 1px solid #E8E8E4;\n      margin-left: 1em;\n      padding: 4px;\n      padding-bottom: 8px;\n      background: #F8F8F4;\n      position: relative;\n      line-height: 1.6em;\n      margin-bottom: 8px;\n    }\n      \n      .post .attribution img {\n        border: 1px solid #E8E8E4;\n        border-right: 0;\n        border-bottom: 0;\n        float: right;\n        position: absolute;\n        bottom: 0px;\n        right: 0px;\n      }\n      \n    .post .col {\n      float: right;\n      width: 665px;\n    }\n\n    .post .col img {\n      max-width: 665px;\n    }\n      \n    pre {\n      background: #EEE;\n      padding: 8px 8px;\n      margin-bottom; 10px;\n      font: 100% Menlo, Monaco, Consolas, \"Lucida Console\", monospace;\n      line-height: 1.3em;\n      overflow-x: scroll;\n    }\n      \n    .footer {\n      font-size: 0.8em;\n      text-align: center;\n    }\n      \n    .footer a {\n      text-decoration: none;\n      color: #222;\n    }\n      \n    .footer a:hover {\n      text-decoration: underline;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"wrapper\">\n    <div class=\"question post\" id=\"" + (encodeHTMLText(question.post_id)) + "\">\n      <h1>" + (encodeHTMLText(question.title)) + "</h1>\n      \n      <div class=\"score\">\n        <span class=\"value\">" + question.score + "</span>\n        <span class=\"unit\">votes</span>\n        <br>\n        <span class=\"value\">" + question.view_count + "</span>\n        <span class=\"unit\">views</span>\n      </div>\n      <div class=\"col\">\n        <div class=\"body\">\n          " + question.body + "\n        </div>") + (question.owner || question.creation_date_s ? "  <div class=\"attribution\">\n    asked " + (question.owner ? "by <a href=\"/u/" + (encodeHTMLText(question.owner.user_id)) + "\">" + (encodeHTMLText(question.owner.display_name)) + "<img src=\"" + (encodeHTMLText(question.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n    " + question.creation_date_s + "\n</div>" : '') + (question.last_edit_date_s || question.last_editor ? "  <div class=\"attribution\">\n    edited " + (question.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(question.last_editor.user_id)) + "\">" + (encodeHTMLText(question.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(question.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n    " + (encodeHTMLText(question.last_edit_date_s)) + "\n</div>" : '') + ("        <ul class=\"tags\">\n          " + (((function() {
+    return ("<!doctype html><html>\n<head>\n  <meta charset=\"utf-8\" />\n  <title>\n    " + (encodeHTMLText(question.title)) + "\n  </title>\n  " + (base ? "<base href=\"" + base + "\" />" : '') + "\n  <style>\n    html {\n      background: #D8D8D8;\n    }\n    \n    body {\n      font: 14px sans-serif;\n    }\n      \n    a, a:visited {\n      color: #226;\n    }\n      \n    .wrapper {\n      width: 735px;\n      margin: 1em auto;\n      background: white;\n      padding: 1em;\n    }\n      \n    h1,h2, h3, h4 {\n      padding-bottom: .2em;\n      border-bottom: 1px solid black;\n      margin-top: 0;\n    }\n      \n    h1 {\n      font-size: 1.6em;\n    }\n    h2 {\n      font-size: 1.4em;\n    }\n    h3 {\n      font-size: 1.2em;\n    }\n      \n      \n    h2.answers {\n      border-bottom: 1px solid black;\n    }\n      \n    .implied-by-style {\n      display: none;\n    }\n      \n    .source-header {\n      display: block;\n      background-color: #EEE;\n      padding: 1em 1em;\n      font-size: 1.3em;\n      font-weight: bold;\n      color: black;\n      text-align: left;\n      margin: 0.5em 0;\n      text-align: center;\n    }\n      \n      .source-header a, .source-header a:visited {\n        color: black;\n      }\n      \n    .post .score {\n      float: left;\n      text-align: center;\n      width: 58px;\n      margin: 0px 0 0;\n      padding: 5px 0;\n      border-right: 1px solid #DDD;\n    }\n      \n    .post + .post {\n        border-top: 1px solid #888;\n        padding-top: 1em;\n        margin-top: 1em;\n    }\n      \n      .post .score .value {\n        display: block;\n        font-weight: bold;\n        font-size: 1.3em;\n        margin: 3px 0 0;\n      }\n        \n      .post .score .unit {\n        display: block;\n        opacity: 0.5;\n      }\n        \n      .post .score .annotation {\n        display: block;\n        font-weight: bold;\n        font-size: 0.8em;\n        opacity: 0.75;\n        margin: 5px 0 0;\n      }\n      \n    .post .tags {\n      list-style-type: none;\n      padding: 0;\n      line-height: 1.75em;\n    }\n      \n      .post .tags li {\n        display: inline;\n        padding: .3em .5em;\n        margin: .2em;\n        border: 1px solid #888;\n        background: #F8F8F4;\n        font-size: .75em;\n      }\n        .post .tags li a {\n          color: inherit;\n          text-decoration: inherit;\n        }\n        \n      .post .body {\n        line-height: 1.3em;\n      }\n      \n      .post .body p, .post .body pre {\n        margin-top: 0;\n      }\n      \n    .post .attribution {  \n      font-size: 11px;\n      height: 4em;\n      float: right;\n      width: 160px;\n      border: 1px solid #E8E8E4;\n      margin-left: 1em;\n      padding: 4px;\n      padding-bottom: 8px;\n      background: #F8F8F4;\n      position: relative;\n      line-height: 1.6em;\n      margin-bottom: 8px;\n    }\n      \n      .post .attribution img {\n        border: 1px solid #E8E8E4;\n        border-right: 0;\n        border-bottom: 0;\n        float: right;\n        position: absolute;\n        bottom: 0px;\n        right: 0px;\n      }\n      \n    .post .col {\n      float: right;\n      width: 665px;\n    }\n\n    .post .col img {\n      max-width: 665px;\n    }\n    \n    blockquote {\n      padding: .5em;\n      background: #EEE;\n    }\n      \n    pre {\n      background: #EEE;\n      padding: 8px 8px;\n      margin-bottom; 10px;\n      font: 100% Menlo, Monaco, Consolas, \"Lucida Console\", monospace;\n      line-height: 1.3em;\n      overflow-x: scroll;\n    }\n      \n    .footer {\n      font-size: 0.8em;\n      text-align: center;\n    }\n      \n    .footer a {\n      text-decoration: none;\n      color: #222;\n    }\n      \n    .footer a:hover {\n      text-decoration: underline;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"wrapper\">\n    <div class=\"question post\" id=\"" + (encodeHTMLText(question.post_id)) + "\">\n      <h1>" + (encodeHTMLText(question.title)) + "</h1>\n      \n      <div class=\"score\">\n        <span class=\"value\">" + question.score + "</span>\n        <span class=\"unit\">votes</span>\n        <br>\n        <span class=\"value\">" + question.view_count + "</span>\n        <span class=\"unit\">views</span>\n      </div>\n      <div class=\"col\">\n        <div class=\"body\">\n          " + question.body + "\n        </div>") + (question.owner || question.creation_date_s ? "  <div class=\"attribution\">\n    asked " + (question.owner ? "by <a href=\"/u/" + (encodeHTMLText(question.owner.user_id)) + "\">" + (encodeHTMLText(question.owner.display_name)) + "<img src=\"" + (encodeHTMLText(question.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n    " + question.creation_date_s + "\n</div>" : '') + (question.last_edit_date_s || question.last_editor ? "  <div class=\"attribution\">\n    edited " + (question.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(question.last_editor.user_id)) + "\">" + (encodeHTMLText(question.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(question.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n    " + (encodeHTMLText(question.last_edit_date_s)) + "\n</div>" : '') + ("        <ul class=\"tags\">\n          " + (((function() {
       var _i, _len, _ref2, _results;
       _ref2 = question.tags;
       _results = [];
@@ -370,7 +382,7 @@ body = function(manifest) {
       _results = [];
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
         answer = _ref2[_i];
-        _results.push(("<div class=\"answer post\" id=\"" + (encodeHTMLText(answer.post_id)) + "\">\n  <div class=\"score\">\n    <span class=\"value\">" + question.score + "</span>\n    <span class=\"unit\">votes</span>\n  </div>\n  <div class=\"col\">\n    <div class=\"body\">\n      " + answer.body + "\n    </div>") + (answer.owner || answer.creation_date_s ? "  <div class=\"attribution\">\n    answered " + (answer.owner ? "by <a href=\"/u/" + (encodeHTMLText(question.owner.user_id)) + "\">" + (encodeHTMLText(answer.owner.display_name)) + "<img src=\"" + (encodeHTMLText(answer.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + answer.creation_date_s + "\n</div>" : '') + (answer.last_edit_date_s || answer.last_editor ? "  <div class=\"attribution\">\n    edited " + (question.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(answer.last_editor.user_id)) + "\">" + (encodeHTMLText(answer.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(answer.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + (encodeHTMLText(answer.last_edit_date_s)) + "\n</div>" : '') + "</div>\n<div style=\"clear: both;\"></div>\n</div>");
+        _results.push(("<div class=\"answer post\" id=\"" + (encodeHTMLText(answer.post_id)) + "\">\n  <div class=\"score\">\n    <span class=\"value\">" + answer.score + "</span>\n    <span class=\"unit\">votes</span>\n  </div>\n  <div class=\"col\">\n    <div class=\"body\">\n      " + answer.body + "\n    </div>") + (answer.owner || answer.creation_date_s ? "  <div class=\"attribution\">\n    answered " + (answer.owner ? "by <a href=\"/u/" + (encodeHTMLText(answer.owner.user_id)) + "\">" + (encodeHTMLText(answer.owner.display_name)) + "<img src=\"" + (encodeHTMLText(answer.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + answer.creation_date_s + "\n</div>" : '') + (answer.last_edit_date_s || answer.last_editor ? "  <div class=\"attribution\">\n    edited " + (answer.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(answer.last_editor.user_id)) + "\">" + (encodeHTMLText(answer.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(answer.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + (encodeHTMLText(answer.last_edit_date_s)) + "\n</div>" : '') + "</div>\n<div style=\"clear: both;\"></div>\n</div>");
       }
       return _results;
     })()).join('\n') + ("</div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (encodeHTMLText(manifest.homepage_url)) + "\">StackScraper</a></a>\n  </div>\n</body>\n</html>");
