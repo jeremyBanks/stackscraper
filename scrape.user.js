@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.0.4
+// @version        0.0.5
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -20,7 +20,6 @@
 ;
 
 var execute, load, loadAndExecute,
-  _this = this,
   __slice = Array.prototype.slice;
 
 load = function(url, onLoad, onError) {
@@ -54,8 +53,8 @@ loadAndExecute = function(url, functionOrCode) {
 
 execute(function() {
   var BlobBuilder, StackScraper, URL, makeDocument, makeThrottle, stackScraper;
-  BlobBuilder = _this.BlobBuilder || _this.WebKitBlobBuilder || _this.MozBlobBuilder || _this.OBlobBuilder;
-  URL = _this.URL || _this.webkitURL || _this.mozURL || _this.oURL;
+  BlobBuilder = this.BlobBuilder || this.WebKitBlobBuilder || this.MozBlobBuilder || this.OBlobBuilder;
+  URL = this.URL || this.webkitURL || this.mozURL || this.oURL;
   makeThrottle = function(interval) {
     var intervalId, queue, throttle;
     queue = [];
@@ -190,13 +189,13 @@ execute(function() {
       if (is_question = post$.is('.question')) {
         post = {
           post_id: +post$.data('questionid'),
-          post_type: 'question',
-          is_accepted: post$.find('.vote-accepted-on').length !== 0
+          post_type: 'question'
         };
       } else {
         post = {
           post_id: +post$.data('answerid'),
-          post_type: 'answer'
+          post_type: 'answer',
+          is_accepted: post$.find('.vote-accepted-on').length !== 0
         };
       }
       post.body = $.trim(post$.find('.post-text').html());
@@ -285,7 +284,18 @@ execute(function() {
       return this.ajax("/posts/" + postid + "/comments").pipe(function(commentsSource) {
         var commentPage$, postComments;
         commentPage$ = $(makeDocument("<body><table>" + commentsSource + "</table></body>"));
-        return postComments = [];
+        postComments = [];
+        $('.comment').each(function() {
+          var _ref;
+          return postComments.push({
+            comment_id: $(this).attr('id').split('-')[2],
+            score: +((_ref = $.trim($('.comment-score', this).text())) != null ? _ref : 0),
+            body: $.trim($('.comment-copy', this).text()),
+            user_id: +$('a.comment-user', this).attr('href').split(/\//g)[2],
+            display_name: $('a.comment-user', this).text()
+          });
+        });
+        return postComments;
       });
     };
 
@@ -307,7 +317,7 @@ execute(function() {
       existingBeforeSend = options.beforeSend;
       if (options.cache == null) options.cache = true;
       options.beforeSend = function(request) {
-        request.setRequestHeader('X-StackScraper-Version', '0.0.4');
+        request.setRequestHeader('X-StackScraper-Version', '0.0.5');
         return existingBeforeSend != null ? existingBeforeSend.apply(this, arguments) : void 0;
       };
       return $.ajax(url, options);
@@ -316,7 +326,7 @@ execute(function() {
     return StackScraper;
 
   })();
-  _this.stackScraper = stackScraper = new StackScraper;
+  this.stackScraper = stackScraper = new StackScraper;
   return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">download</a>').click(function() {
     var questionId;
     questionId = $('#question').data('questionid');

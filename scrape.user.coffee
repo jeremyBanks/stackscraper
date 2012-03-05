@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.0.4
+// @version        0.0.5
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -47,7 +47,7 @@ execute = (functionOrCode) ->
 loadAndExecute = (url, functionOrCode) ->
     load url, -> execute functionOrCode
 
-execute =>
+execute ->
   BlobBuilder = @BlobBuilder or @WebKitBlobBuilder or @MozBlobBuilder or @OBlobBuilder
   URL = @URL or @webkitURL or @mozURL or @oURL
 
@@ -148,11 +148,11 @@ execute =>
         post =
           post_id: +post$.data('questionid')
           post_type: 'question'
-          is_accepted: post$.find('.vote-accepted-on').length isnt 0
       else
         post =
           post_id: +post$.data('answerid')
           post_type: 'answer'
+          is_accepted: post$.find('.vote-accepted-on').length isnt 0
       
       post.body = $.trim post$.find('.post-text').html()
       post.score = +post$.find('.vote-count-post').text()
@@ -213,13 +213,20 @@ execute =>
         postSource =
           title: $('[name=title]', sourcePage$).val()
           body: $('[name=post-text]', sourcePage$).val()
-  
+    
     getPostComments: (postid) ->
       @ajax("/posts/#{postid}/comments").pipe (commentsSource) =>
         commentPage$ = $(makeDocument("<body><table>#{commentsSource}</table></body>"))
-        
-        postComments = [] # TODO
-  
+        postComments = []
+        $('.comment').each ->
+          postComments.push
+            comment_id: $(@).attr('id').split('-')[2]
+            score: +($.trim($('.comment-score', @).text()) ? 0)
+            body: $.trim($('.comment-copy', @).text())
+            user_id: +$('a.comment-user', @).attr('href').split(/\//g)[2]
+            display_name: $('a.comment-user', @).text()
+        postComments
+    
     getPostVoteCount: (postid) ->
       @ajax("/posts/#{postid}/vote-counts", dataType: 'json').pipe (voteCounts) =>
         (up: +voteCounts.up, down: +voteCounts.down)
@@ -229,7 +236,7 @@ execute =>
       existingBeforeSend = options.beforeSend;
       options.cache ?= true
       options.beforeSend = (request) ->
-        request.setRequestHeader 'X-StackScraper-Version', '0.0.4'
+        request.setRequestHeader 'X-StackScraper-Version', '0.0.5'
         return existingBeforeSend?.apply this, arguments
       $.ajax(url, options)
 
