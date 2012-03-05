@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.1.0
+// @version        0.1.8
 // @namespace      http://extensions.github.com/stackscraper/
-// @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
+// @description    Adds a "download" option to Stack Exchange questions.
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
 // @include        http://*.stackoverflow.com/questions/*
@@ -19,44 +19,48 @@
 // ==/UserScript==
 ;
 
-var execute, load, loadAndExecute,
+var body, e, manifest,
   __slice = Array.prototype.slice;
 
-load = function(url, onLoad, onError) {
-  var e;
-  e = document.createElement("script");
-  e.setAttribute("src", url);
-  if (onLoad != null) e.addEventListener("load", onLoad);
-  if (onError != null) e.addEventListener("error", onError);
-  document.body.appendChild(e);
-  return e;
-};
-
-execute = function(functionOrCode) {
-  var code, e;
-  if (typeof functionOrCode === "function") {
-    code = "(" + functionOrCode + ")();";
-  } else {
-    code = functionOrCode;
+manifest = {
+  name: 'StackScraper',
+  version: '0.1.8',
+  description: 'Adds a "download" option to Stack Exchange questions.',
+  permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
+  content_scripts: [
+    {
+      matches: ['*'],
+      js: ['stackscraper.user.js']
+    }
+  ],
+  icons: {
+    128: 'icon128.png'
   }
-  e = document.createElement("script");
-  e.textContent = code;
-  document.body.appendChild(e);
-  return e;
 };
 
-loadAndExecute = function(url, functionOrCode) {
-  return load(url, function() {
-    return execute(functionOrCode);
-  });
-};
-
-execute(function() {
+body = function(manifest) {
   __slice = Array.prototype.slice;
 
-  var BlobBuilder, StackScraper, URL, makeDocument, makeThrottle, stackScraper;
+  var BlobBuilder, StackScraper, URL, main, makeDocument, makeThrottle;
   BlobBuilder = this.BlobBuilder || this.WebKitBlobBuilder || this.MozBlobBuilder || this.OBlobBuilder;
   URL = this.URL || this.webkitURL || this.mozURL || this.oURL;
+  main = function() {
+    var stackScraper;
+    this.stackScraper = stackScraper = new StackScraper;
+    return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">download</a>').click(function() {
+      var questionId;
+      questionId = $('#question').data('questionid');
+      stackScraper.getQuestion(questionId).then(function(question) {
+        var bb;
+        bb = new BlobBuilder;
+        bb.append(JSON.stringify(question, 4));
+        window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".json");
+        return $(this).text('download');
+      });
+      $(this).text('downloading...');
+      return false;
+    }));
+  };
   makeThrottle = function(interval) {
     var intervalId, queue, throttle;
     queue = [];
@@ -319,7 +323,7 @@ execute(function() {
       existingBeforeSend = options.beforeSend;
       if (options.cache == null) options.cache = true;
       options.beforeSend = function(request) {
-        request.setRequestHeader('X-StackScraper-Version', '0.1.0');
+        request.setRequestHeader('X-StackScraper-Version', manifest.version);
         return existingBeforeSend != null ? existingBeforeSend.apply(this, arguments) : void 0;
       };
       return $.ajax(url, options);
@@ -328,18 +332,16 @@ execute(function() {
     return StackScraper;
 
   })();
-  this.stackScraper = stackScraper = new StackScraper;
-  return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">download</a>').click(function() {
-    var questionId;
-    questionId = $('#question').data('questionid');
-    stackScraper.getQuestion(questionId).then(function(question) {
-      var bb;
-      bb = new BlobBuilder;
-      bb.append(JSON.stringify(question, 4));
-      window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".json");
-      return $(this).text('download');
-    });
-    $(this).text('downloading...');
-    return false;
-  }));
-});
+  return main();
+};
+
+if (typeof exports !== "undefined" && exports !== null) {
+  exports.manifest = manifest;
+  exports.body = body;
+} else if ((typeof document !== "undefined" && document !== null) && (typeof location !== "undefined" && location !== null)) {
+  if (location.pathname.match(/\/questions\/\d+/)) {
+    e = document.createElement('script');
+    e.textContent = "(" + body + ")(" + (JSON.stringify(manifest)) + ");";
+    document.body.appendChild(e);
+  }
+}

@@ -1,8 +1,8 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.1.0
+// @version        0.1.8
 // @namespace      http://extensions.github.com/stackscraper/
-// @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
+// @description    Adds a "download" option to Stack Exchange questions.
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
 // @include        http://*.stackoverflow.com/questions/*
@@ -18,40 +18,42 @@
 // @include        http://*.answers.onstartups.com/questions/*
 // ==/UserScript==
 `
-# jQuerys are suffixied with $, Promises (including Deferreds) suffixed with P
 
-load = (url, onLoad, onError) ->
-    e = document.createElement "script"
-    e.setAttribute "src", url
+manifest = 
+  name: 'StackScraper'
+  version: '0.1.8'
+  description: 'Adds a "download" option to Stack Exchange questions.'
+  permissions: [
+    '*://*.stackexchange.com/*'
+    '*://*.stackoverflow.com/*'
+    '*://*.serverfault.com/*'
+    '*://*.superuser.com/*'
+    '*://*.askubuntu.com/*'
+    '*://*.answers.onstartups.com/*'
+    '*://*.stackapps.com/*'
+  ]
+  content_scripts: [matches: ['*'], js: ['stackscraper.user.js']]
+  icons: 128: 'icon128.png'
 
-    if onLoad? then e.addEventListener "load", onLoad
-    if onError? then e.addEventListener "error", onError
-
-    document.body.appendChild e
-
-    return e
-
-execute = (functionOrCode) ->
-    if typeof functionOrCode is "function"
-        code = "(#{functionOrCode})();"
-    else
-        code = functionOrCode
-
-    e = document.createElement "script"
-    e.textContent = code
-
-    document.body.appendChild e
-
-    return e
-
-loadAndExecute = (url, functionOrCode) ->
-    load url, -> execute functionOrCode
-
-execute ->
-  `__slice = Array.prototype.slice`
+body = (manifest) ->
+  `__slice = Array.prototype.slice` # include this manually because we break CoffeeScript's copy
   BlobBuilder = @BlobBuilder or @WebKitBlobBuilder or @MozBlobBuilder or @OBlobBuilder
   URL = @URL or @webkitURL or @mozURL or @oURL
+  
+  main = ->
+    @stackScraper = stackScraper = new StackScraper
 
+    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">download</a>').click ->
+      questionId = $('#question').data('questionid')
+      stackScraper.getQuestion(questionId).then (question) ->
+        bb = new BlobBuilder
+        bb.append JSON.stringify(question, 4)
+        window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
+        $(this).text('download')
+      $(this).text('downloading...')
+    
+      false
+  
   makeThrottle = (interval) ->
     # Creates a throttle with a given interval. the throttle takes a function and wraps it such that it yields
     # deferred results and the wrapped function won't be called more often than once every interval miliseconds.
@@ -82,7 +84,7 @@ execute ->
     doc = document.implementation.createHTMLDocument(title)
     if html? then doc.head.parentElement.innerHTML = html
     doc
-
+  
   class StackScraper
     getQuestion: (questionid) ->
       @getShallowQuestion(questionid).pipe (question) =>
@@ -237,19 +239,17 @@ execute ->
       existingBeforeSend = options.beforeSend;
       options.cache ?= true
       options.beforeSend = (request) ->
-        request.setRequestHeader 'X-StackScraper-Version', '0.1.0'
+        request.setRequestHeader 'X-StackScraper-Version', manifest.version
         return existingBeforeSend?.apply this, arguments
       $.ajax(url, options)
+  
+  do main
 
-  @stackScraper = stackScraper = new StackScraper
-
-  $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">download</a>').click ->
-    questionId = $('#question').data('questionid')
-    stackScraper.getQuestion(questionId).then (question) ->
-      bb = new BlobBuilder
-      bb.append JSON.stringify(question, 4)
-      window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
-      $(this).text('download')
-    $(this).text('downloading...')
-    
-    false
+if exports?
+  exports.manifest = manifest
+  exports.body = body
+else if document? and location?
+  if location.pathname.match /\/questions\/\d+/
+    e = document.createElement 'script'
+    e.textContent = "(#{body})(#{JSON.stringify manifest});"
+    document.body.appendChild e
