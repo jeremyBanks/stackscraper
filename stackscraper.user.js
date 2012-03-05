@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.1.8
+// @version        0.2.0
 // @namespace      http://extensions.github.com/stackscraper/
-// @description    Adds a "download" option to Stack Exchange questions.
+// @description    Adds download options to Stack Exchange questions.
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
 // @include        http://*.stackoverflow.com/questions/*
@@ -24,8 +24,9 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.1.8',
-  description: 'Adds a "download" option to Stack Exchange questions.',
+  version: '0.2.0',
+  description: 'Adds download options to Stack Exchange questions.',
+  homepage_url: 'https://github.com/extensions/stackscraper/',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
   content_scripts: [
     {
@@ -41,23 +42,34 @@ manifest = {
 body = function(manifest) {
   __slice = Array.prototype.slice;
 
-  var BlobBuilder, StackScraper, URL, main, makeDocument, makeThrottle;
+  var BlobBuilder, StackScraper, URL, encodeHTMLText, main, makeDocument, makeThrottle, renderQuestion;
   BlobBuilder = this.BlobBuilder || this.WebKitBlobBuilder || this.MozBlobBuilder || this.OBlobBuilder;
   URL = this.URL || this.webkitURL || this.mozURL || this.oURL;
   main = function() {
-    var stackScraper;
+    var questionId, stackScraper;
     this.stackScraper = stackScraper = new StackScraper;
-    return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">download</a>').click(function() {
-      var questionId;
-      questionId = $('#question').data('questionid');
+    questionId = $('#question').data('questionid');
+    $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">JSON</a>').click(function() {
+      var _this = this;
+      $(this).addClass('ac_loading');
       stackScraper.getQuestion(questionId).then(function(question) {
         var bb;
         bb = new BlobBuilder;
-        bb.append(JSON.stringify(question, 4));
-        window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".json");
-        return $(this).text('download');
+        bb.append(JSON.stringify(question));
+        $(_this).removeClass('ac_loading');
+        return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".json");
       });
-      $(this).text('downloading...');
+      return false;
+    }));
+    return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download an HTML copy of this post">HTML</a>').click(function() {
+      $(this).addClass('ac_loading');
+      stackScraper.getQuestion(questionId).then(function(question) {
+        var bb;
+        bb = new BlobBuilder;
+        bb.append(renderQuestion(question));
+        $(this).removeClass('ac_loading');
+        return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".html");
+      });
       return false;
     }));
   };
@@ -103,11 +115,14 @@ body = function(manifest) {
 
     StackScraper.name = 'StackScraper';
 
-    function StackScraper() {}
+    function StackScraper() {
+      this.questions = {};
+    }
 
     StackScraper.prototype.getQuestion = function(questionid) {
       var _this = this;
-      return this.getShallowQuestion(questionid).pipe(function(question) {
+      if (questionid in this.questions) return this.questions[questionid];
+      return this.questions[questionid] = this.getShallowQuestion(questionid).pipe(function(question) {
         var post, questionP, tasks, _fn, _i, _len, _ref;
         tasks = [];
         _ref = [question].concat(question.answers);
@@ -214,20 +229,20 @@ body = function(manifest) {
         editorSig = null;
         ownerSig = sigs[0];
       }
-      if (communityOwnage$ = post$.find('.community-wiki')) {
+      if ((communityOwnage$ = post$.find('.community-wiki')).length) {
         post.community_owned_date_s = (_ref = communityOwnage$.attr('title')) != null ? _ref.match(/as of ([^\.]+)./)[1] : void 0;
       } else {
-        if ((ownerSig != null) && !communityOwnage$) {
+        if ((ownerSig != null) && !communityOwnage$.length) {
           post.owner = {
-            user_id: +$('.user-details a', ownerSig).split(/\//g)[2],
+            user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', ownerSig).text(),
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, ''),
             profile_image: $('.user-gravatar32 img').attr('src')
           };
         }
-        if ((editorSig != null) && !communityOwnage$) {
+        if ((editorSig != null) && !communityOwnage$.length) {
           post.last_editor = {
-            user_id: +$('.user-details a', editorSig).split(/\//g)[2],
+            user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', editorSig).text(),
             reputation: $('.reputation-score', editorSig).text().replace(/,/g, ''),
             profile_image: $('.user-gravatar32 img').attr('src')
@@ -296,7 +311,7 @@ body = function(manifest) {
           return postComments.push({
             comment_id: $(this).attr('id').split('-')[2],
             score: +((_ref = $.trim($('.comment-score', this).text())) != null ? _ref : 0),
-            body: $.trim($('.comment-copy', this).text()),
+            body: $.trim($('.comment-copy', this).html()),
             user_id: +$('a.comment-user', this).attr('href').split(/\//g)[2],
             display_name: $($('a.comment-user', this)[0].childNodes[0]).text()
           });
@@ -317,7 +332,7 @@ body = function(manifest) {
       });
     };
 
-    StackScraper.prototype.ajax = (makeThrottle(500))(function(url, options) {
+    StackScraper.prototype.ajax = (makeThrottle(1000))(function(url, options) {
       var existingBeforeSend;
       if (options == null) options = {};
       existingBeforeSend = options.beforeSend;
@@ -332,6 +347,34 @@ body = function(manifest) {
     return StackScraper;
 
   })();
+  encodeHTMLText = function(text) {
+    return String(text).replace(/&/, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;').replace(/>/, '&gt;').replace(/"/, '&quot;').replace(/"/, '&#39;');
+  };
+  renderQuestion = function(question, base) {
+    var answer, tag, _ref;
+    if (base == null) {
+      base = 'http://' + (typeof window !== "undefined" && window !== null ? (_ref = window.location) != null ? _ref.host : void 0 : void 0);
+    }
+    return ("<!doctype html><html>\n<head>\n  <meta charset=\"utf-8\" />\n  <title>\n    " + (encodeHTMLText(question.title)) + "\n  </title>\n  " + (base ? "<base href=\"" + base + "\" />" : '') + "\n  <style>\n    html {\n      background: #D8D8D8;\n    }\n    \n    body {\n      font: 14px sans-serif;\n    }\n      \n    a, a:visited {\n      color: #226;\n    }\n      \n    .wrapper {\n      width: 735px;\n      margin: 1em auto;\n      background: white;\n      padding: 1em;\n    }\n      \n    h1,h2, h3, h4 {\n      padding-bottom: .2em;\n      border-bottom: 1px solid black;\n      margin-top: 0;\n    }\n      \n    h1 {\n      font-size: 1.6em;\n    }\n    h2 {\n      font-size: 1.4em;\n    }\n    h3 {\n      font-size: 1.2em;\n    }\n      \n      \n    h2.answers {\n      border-bottom: 1px solid black;\n    }\n      \n    .implied-by-style {\n      display: none;\n    }\n      \n    .source-header {\n      display: block;\n      background-color: #EEE;\n      padding: 1em 1em;\n      font-size: 1.3em;\n      font-weight: bold;\n      color: black;\n      text-align: left;\n      margin: 0.5em 0;\n      text-align: center;\n    }\n      \n      .source-header a, .source-header a:visited {\n        color: black;\n      }\n      \n    .post .score {\n      float: left;\n      text-align: center;\n      width: 58px;\n      margin: 0px 0 0;\n      padding: 5px 0;\n      border-right: 1px solid #DDD;\n    }\n      \n    .post + .post {\n        border-top: 1px solid #888;\n        padding-top: 1em;\n        margin-top: 1em;\n    }\n      \n      .post .score .value {\n        display: block;\n        font-weight: bold;\n        font-size: 1.3em;\n        margin: 3px 0 0;\n      }\n        \n      .post .score .unit {\n        display: block;\n        opacity: 0.5;\n      }\n        \n      .post .score .annotation {\n        display: block;\n        font-weight: bold;\n        font-size: 0.8em;\n        opacity: 0.75;\n        margin: 5px 0 0;\n      }\n      \n    .post .tags {\n      list-style-type: none;\n      padding: 0;\n      line-height: 1.75em;\n    }\n      \n      .post .tags li {\n        display: inline;\n        padding: .3em .5em;\n        margin: .2em;\n        border: 1px solid #888;\n        background: #F8F8F4;\n        font-size: .75em;\n      }\n        .post .tags li a {\n          color: inherit;\n          text-decoration: inherit;\n        }\n        \n      .post .body {\n        line-height: 1.3em;\n      }\n      \n      .post .body p, .post .body pre {\n        margin-top: 0;\n      }\n      \n    .post .attribution {  \n      font-size: 11px;\n      height: 4em;\n      float: right;\n      width: 160px;\n      border: 1px solid #E8E8E4;\n      margin-left: 1em;\n      padding: 4px;\n      padding-bottom: 8px;\n      background: #F8F8F4;\n      position: relative;\n      line-height: 1.6em;\n      margin-bottom: 8px;\n    }\n      \n      .post .attribution img {\n        border: 1px solid #E8E8E4;\n        border-right: 0;\n        border-bottom: 0;\n        float: right;\n        position: absolute;\n        bottom: 0px;\n        right: 0px;\n      }\n      \n    .post .col {\n      float: right;\n      width: 665px;\n    }\n      \n    pre {\n      background: #EEE;\n      padding: 8px 8px;\n      margin-bottom; 10px;\n      font: 100% Menlo, Monaco, Consolas, \"Lucida Console\", monospace;\n      line-height: 1.3em;\n      overflow-x: scroll;\n    }\n      \n    .footer {\n      font-size: 0.8em;\n      text-align: center;\n    }\n      \n    .footer a {\n      text-decoration: none;\n      color: #222;\n    }\n      \n    .footer a:hover {\n      text-decoration: underline;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"wrapper\">\n    <div class=\"question post\" id=\"" + (encodeHTMLText(question.post_id)) + "\">\n      <h1>" + (encodeHTMLText(question.title)) + "</h1>\n      \n      <div class=\"score\">\n        <span class=\"value\">" + question.score + "</span>\n        <span class=\"unit\">votes</span>\n        <br>\n        <span class=\"value\">" + question.view_count + "</span>\n        <span class=\"unit\">views</span>\n      </div>\n      <div class=\"col\">\n        <div class=\"body\">\n          " + question.body + "\n        </div>") + (question.last_edit_date_s || question.last_editor ? "  <div class=\"attribution\">\n    edited " + (question.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(question.last_editor.user_id)) + "\">" + (encodeHTMLText(question.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(question.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n    " + (encodeHTMLText(question.last_edit_date_s)) + "\n</div>" : '') + (question.owner || question.creation_date_s ? "  <div class=\"attribution\">\n    asked " + (question.owner ? "by <a href=\"/u/" + (encodeHTMLText(question.owner.user_id)) + "\">" + (encodeHTMLText(question.owner.display_name)) + "<img src=\"" + (encodeHTMLText(question.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n    " + question.creation_date_s + "\n</div>" : '') + ("        <ul class=\"tags\">\n          " + (((function() {
+      var _i, _len, _ref2, _results;
+      _ref2 = question.tags;
+      _results = [];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        tag = _ref2[_i];
+        _results.push("<li><a href=\"/tags/" + (encodeHTMLText(tag)) + "\">" + (encodeHTMLText(tag)) + "</a></li>");
+      }
+      return _results;
+    })()).join('\n')) + "\n        </ul>\n      \n      <div style=\"clear: both;\"></div>\n      \n        <div class=\"source-header\">\n          This was <a href=\"/q/" + question.post_id + "\">originally posted</a> on Stack Exchange" + (question.deleted ? ', but it has been deleted' : '') + ".\n        </div>\n      </div>\n    </div>  \n    \n      <div style=\"clear: both;\"></div>\n\n    <h2 class=\"answers\">\n      " + (encodeHTMLText(question.answers.length)) + " Answers\n    </h2>\n    ") + ((function() {
+      var _i, _len, _ref2, _results;
+      _ref2 = question.answers;
+      _results = [];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        answer = _ref2[_i];
+        _results.push(("<div class=\"answer post\" id=\"" + (encodeHTMLText(answer.post_id)) + "\">\n  <div class=\"score\">\n    <span class=\"value\">" + question.score + "</span>\n    <span class=\"unit\">votes</span>\n  </div>\n  <div class=\"col\">\n    <div class=\"body\">\n      " + answer.body + "\n    </div>") + (answer.last_edit_date_s || answer.last_editor ? "  <div class=\"attribution\">\n    edited " + (question.last_editor ? "by <a href=\"/u/" + (encodeHTMLText(answer.last_editor.user_id)) + "\">" + (encodeHTMLText(answer.last_editor.display_name)) + "<img src=\"" + (encodeHTMLText(answer.last_editor.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + (encodeHTMLText(answer.last_edit_date_s)) + "\n</div>" : '') + (answer.owner || answer.creation_date_s ? "  <div class=\"attribution\">\n    answered " + (answer.owner ? "by <a href=\"/u/" + (encodeHTMLText(question.owner.user_id)) + "\">" + (encodeHTMLText(answer.owner.display_name)) + "<img src=\"" + (encodeHTMLText(answer.owner.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n     " + answer.creation_date_s + "\n</div>" : '') + "</div>\n<div style=\"clear: both;\"></div>\n</div>");
+      }
+      return _results;
+    })()).join('\n') + ("</div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (encodeHTMLText(manifest.homepage_url)) + "\">StackScraper</a></a>\n  </div>\n</body>\n</html>");
+  };
   return main();
 };
 

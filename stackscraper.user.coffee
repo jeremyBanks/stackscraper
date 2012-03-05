@@ -1,8 +1,8 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.1.8
+// @version        0.2.0
 // @namespace      http://extensions.github.com/stackscraper/
-// @description    Adds a "download" option to Stack Exchange questions.
+// @description    Adds download options to Stack Exchange questions.
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
 // @include        http://*.stackoverflow.com/questions/*
@@ -21,8 +21,9 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.1.8'
-  description: 'Adds a "download" option to Stack Exchange questions.'
+  version: '0.2.0'
+  description: 'Adds download options to Stack Exchange questions.'
+  homepage_url: 'https://github.com/extensions/stackscraper/'
   permissions: [
     '*://*.stackexchange.com/*'
     '*://*.stackoverflow.com/*'
@@ -42,15 +43,25 @@ body = (manifest) ->
   
   main = ->
     @stackScraper = stackScraper = new StackScraper
+    questionId = $('#question').data('questionid')
 
-    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">download</a>').click ->
-      questionId = $('#question').data('questionid')
+    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">JSON</a>').click ->
+      $(@).addClass('ac_loading')
+      stackScraper.getQuestion(questionId).then (question) =>
+        bb = new BlobBuilder
+        bb.append JSON.stringify(question)
+        $(@).removeClass('ac_loading')
+        window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
+    
+      false
+
+    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download an HTML copy of this post">HTML</a>').click ->
+      $(this).addClass('ac_loading')
       stackScraper.getQuestion(questionId).then (question) ->
         bb = new BlobBuilder
-        bb.append JSON.stringify(question, 4)
-        window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
-        $(this).text('download')
-      $(this).text('downloading...')
+        bb.append renderQuestion(question)
+        $(@).removeClass('ac_loading')
+        window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.html"
     
       false
   
@@ -86,8 +97,14 @@ body = (manifest) ->
     doc
   
   class StackScraper
+    constructor: ->
+      @questions = {}
+      
     getQuestion: (questionid) ->
-      @getShallowQuestion(questionid).pipe (question) =>
+      if questionid of @questions
+        return @questions[questionid]
+      
+      @questions[questionid] = @getShallowQuestion(questionid).pipe (question) =>
         tasks = []
       
         for post in [question].concat(question.answers)
@@ -168,19 +185,19 @@ body = (manifest) ->
         editorSig = null
         [ownerSig] = sigs
       
-      if communityOwnage$ = post$.find('.community-wiki')
+      if (communityOwnage$ = post$.find('.community-wiki')).length
         post.community_owned_date_s = communityOwnage$.attr('title')?.match(/as of ([^\.]+)./)[1]
       else
-        if ownerSig? and not communityOwnage$
+        if ownerSig? and not communityOwnage$.length
           post.owner =
-            user_id: +$('.user-details a', ownerSig).split(/\//g)[2]
+            user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', ownerSig).text()
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, '')
             profile_image: $('.user-gravatar32 img').attr('src')
         
-        if editorSig? and not communityOwnage$
+        if editorSig? and not communityOwnage$.length
           post.last_editor =
-            user_id: +$('.user-details a', editorSig).split(/\//g)[2]
+            user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', editorSig).text()
             reputation: $('.reputation-score', editorSig).text().replace(/,/g, '')
             profile_image: $('.user-gravatar32 img').attr('src')
@@ -225,7 +242,7 @@ body = (manifest) ->
           postComments.push
             comment_id: $(@).attr('id').split('-')[2]
             score: +($.trim($('.comment-score', @).text()) ? 0)
-            body: $.trim($('.comment-copy', @).text())
+            body: $.trim($('.comment-copy', @).html())
             user_id: +$('a.comment-user', @).attr('href').split(/\//g)[2]
             display_name: $($('a.comment-user', @)[0].childNodes[0]).text()
         postComments
@@ -235,13 +252,292 @@ body = (manifest) ->
         (up: +voteCounts.up, down: +voteCounts.down)
   
     # be nice: wrap $.ajax to add our throttle and header.
-    ajax: (makeThrottle 500) (url, options = {}) ->
+    ajax: (makeThrottle 1000) (url, options = {}) ->
       existingBeforeSend = options.beforeSend;
       options.cache ?= true
       options.beforeSend = (request) ->
         request.setRequestHeader 'X-StackScraper-Version', manifest.version
         return existingBeforeSend?.apply this, arguments
       $.ajax(url, options)
+  
+  encodeHTMLText = (text) ->
+    String(text).replace(/&/, '&amp;').replace(/</, '&lt;').replace(/>/, '&gt;').replace(/>/, '&gt;').replace(/"/, '&quot;').replace(/"/, '&#39;')
+  
+  renderQuestion = (question, base = ('http://' + window?.location?.host)) ->
+    """<!doctype html><html>
+<head>
+  <meta charset="utf-8" />
+  <title>
+    #{encodeHTMLText question.title}
+  </title>
+  #{if base then "<base href=\"#{base}\" />" else ''}
+  <style>
+    html {
+      background: #D8D8D8;
+    }
+    
+    body {
+      font: 14px sans-serif;
+    }
+      
+    a, a:visited {
+      color: #226;
+    }
+      
+    .wrapper {
+      width: 735px;
+      margin: 1em auto;
+      background: white;
+      padding: 1em;
+    }
+      
+    h1,h2, h3, h4 {
+      padding-bottom: .2em;
+      border-bottom: 1px solid black;
+      margin-top: 0;
+    }
+      
+    h1 {
+      font-size: 1.6em;
+    }
+    h2 {
+      font-size: 1.4em;
+    }
+    h3 {
+      font-size: 1.2em;
+    }
+      
+      
+    h2.answers {
+      border-bottom: 1px solid black;
+    }
+      
+    .implied-by-style {
+      display: none;
+    }
+      
+    .source-header {
+      display: block;
+      background-color: #EEE;
+      padding: 1em 1em;
+      font-size: 1.3em;
+      font-weight: bold;
+      color: black;
+      text-align: left;
+      margin: 0.5em 0;
+      text-align: center;
+    }
+      
+      .source-header a, .source-header a:visited {
+        color: black;
+      }
+      
+    .post .score {
+      float: left;
+      text-align: center;
+      width: 58px;
+      margin: 0px 0 0;
+      padding: 5px 0;
+      border-right: 1px solid #DDD;
+    }
+      
+    .post + .post {
+        border-top: 1px solid #888;
+        padding-top: 1em;
+        margin-top: 1em;
+    }
+      
+      .post .score .value {
+        display: block;
+        font-weight: bold;
+        font-size: 1.3em;
+        margin: 3px 0 0;
+      }
+        
+      .post .score .unit {
+        display: block;
+        opacity: 0.5;
+      }
+        
+      .post .score .annotation {
+        display: block;
+        font-weight: bold;
+        font-size: 0.8em;
+        opacity: 0.75;
+        margin: 5px 0 0;
+      }
+      
+    .post .tags {
+      list-style-type: none;
+      padding: 0;
+      line-height: 1.75em;
+    }
+      
+      .post .tags li {
+        display: inline;
+        padding: .3em .5em;
+        margin: .2em;
+        border: 1px solid #888;
+        background: #F8F8F4;
+        font-size: .75em;
+      }
+        .post .tags li a {
+          color: inherit;
+          text-decoration: inherit;
+        }
+        
+      .post .body {
+        line-height: 1.3em;
+      }
+      
+      .post .body p, .post .body pre {
+        margin-top: 0;
+      }
+      
+    .post .attribution {  
+      font-size: 11px;
+      height: 4em;
+      float: right;
+      width: 160px;
+      border: 1px solid #E8E8E4;
+      margin-left: 1em;
+      padding: 4px;
+      padding-bottom: 8px;
+      background: #F8F8F4;
+      position: relative;
+      line-height: 1.6em;
+      margin-bottom: 8px;
+    }
+      
+      .post .attribution img {
+        border: 1px solid #E8E8E4;
+        border-right: 0;
+        border-bottom: 0;
+        float: right;
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+      }
+      
+    .post .col {
+      float: right;
+      width: 665px;
+    }
+      
+    pre {
+      background: #EEE;
+      padding: 8px 8px;
+      margin-bottom; 10px;
+      font: 100% Menlo, Monaco, Consolas, "Lucida Console", monospace;
+      line-height: 1.3em;
+      overflow-x: scroll;
+    }
+      
+    .footer {
+      font-size: 0.8em;
+      text-align: center;
+    }
+      
+    .footer a {
+      text-decoration: none;
+      color: #222;
+    }
+      
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="question post" id="#{encodeHTMLText question.post_id}">
+      <h1>#{encodeHTMLText question.title}</h1>
+      
+      <div class="score">
+        <span class="value">#{question.score}</span>
+        <span class="unit">votes</span>
+        <br>
+        <span class="value">#{question.view_count}</span>
+        <span class="unit">views</span>
+      </div>
+      <div class="col">
+        <div class="body">
+          #{question.body}
+        </div>
+        """ + (if question.last_edit_date_s or question.last_editor then """
+          <div class="attribution">
+            edited #{if question.last_editor
+              "by <a href=\"/u/#{encodeHTMLText question.last_editor.user_id}\">#{encodeHTMLText question.last_editor.display_name}<img src=\"#{encodeHTMLText question.last_editor.profile_image}\" alt=\"\" /></a><br>"
+            else '<br>'}
+            #{encodeHTMLText question.last_edit_date_s}
+        </div>
+        """ else '') + 
+        (if question.owner or question.creation_date_s then """
+          <div class="attribution">
+            asked #{if question.owner
+              "by <a href=\"/u/#{encodeHTMLText question.owner.user_id}\">#{encodeHTMLText question.owner.display_name}<img src=\"#{encodeHTMLText question.owner.profile_image}\" alt=\"\" /></a><br>"
+            else '<br>'}
+            #{question.creation_date_s}
+        </div>
+        """ else '') + """
+        <ul class="tags">
+          #{(for tag in question.tags
+            "<li><a href=\"/tags/#{encodeHTMLText tag}\">#{encodeHTMLText tag}</a></li>"
+          ).join('\n')}
+        </ul>
+      
+      <div style="clear: both;"></div>
+      
+        <div class="source-header">
+          This was <a href="/q/#{question.post_id}">originally posted</a> on Stack Exchange#{if question.deleted then ', but it has been deleted' else ''}.
+        </div>
+      </div>
+    </div>  
+    
+      <div style="clear: both;"></div>
+	  
+    <h2 class="answers">
+      #{encodeHTMLText question.answers.length} Answers
+    </h2>
+    
+    """ + (for answer in question.answers
+      """
+      <div class="answer post" id="#{encodeHTMLText answer.post_id}">
+        <div class="score">
+          <span class="value">#{question.score}</span>
+          <span class="unit">votes</span>
+        </div>
+        <div class="col">
+          <div class="body">
+            #{answer.body}
+          </div>
+        """ +
+        (if answer.last_edit_date_s or answer.last_editor then """
+          <div class="attribution">
+            edited #{if question.last_editor
+              "by <a href=\"/u/#{encodeHTMLText answer.last_editor.user_id}\">#{encodeHTMLText answer.last_editor.display_name}<img src=\"#{encodeHTMLText answer.last_editor.profile_image}\" alt=\"\" /></a><br>"
+            else '<br>'}
+             #{encodeHTMLText answer.last_edit_date_s}
+        </div>
+        """ else '') + 
+        (if answer.owner or answer.creation_date_s then """
+          <div class="attribution">
+            answered #{if answer.owner
+              "by <a href=\"/u/#{encodeHTMLText question.owner.user_id}\">#{encodeHTMLText answer.owner.display_name}<img src=\"#{encodeHTMLText answer.owner.profile_image}\" alt=\"\" /></a><br>"
+            else '<br>'}
+             #{answer.creation_date_s}
+        </div>
+        """ else '') +
+        """</div>
+      <div style="clear: both;"></div>
+      </div>
+      """
+    ).join('\n') + """</div>
+    <div class="footer">
+      <a href="/">exported using <a href="#{encodeHTMLText manifest.homepage_url}">StackScraper</a></a>
+    </div>
+  </body>
+</html>"""
   
   do main
 
