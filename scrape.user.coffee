@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.0.8
+// @version        0.1.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -136,7 +136,7 @@ execute ->
           if key is 'asked'
             question.creation_date_z = $('.label-key', row).last().attr('title')
           if key is 'viewed'
-            question.view_count = +$('.label-key', row).last().attr('title').split(' ')[0]
+            question.view_count = +$('.label-key', row).last().text()?.split(' ')[0]
       
         for page$ in pages
           for answer in page$.find('.answer')
@@ -201,10 +201,10 @@ execute ->
         if lastPageNav$ = $('.page-numbers:not(.next)').last()
           pageCount = +lastPageNav$.text()
         
-          $.when(firstPage$, (for pageNumber in [2..pageCount]
+          $.when(firstPage$, (if pageCount > 1 then (for pageNumber in [2..pageCount]
             @ajax("/questions/#{questionid}?page=#{pageNumber}").pipe (source) ->
               $(makeDocument(source))
-          )...).pipe (pages...) -> pages
+          ) else [])...).pipe (pages...) -> pages
         else
           [firstPage$]
   
@@ -237,7 +237,7 @@ execute ->
       existingBeforeSend = options.beforeSend;
       options.cache ?= true
       options.beforeSend = (request) ->
-        request.setRequestHeader 'X-StackScraper-Version', '0.0.8'
+        request.setRequestHeader 'X-StackScraper-Version', '0.1.0'
         return existingBeforeSend?.apply this, arguments
       $.ajax(url, options)
 

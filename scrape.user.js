@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.0.8
+// @version        0.1.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Allows users to export questions as JSON. (Intended for use by 10Krep+ users for now, may work for others.)
 // @include        http://*.stackexchange.com/questions/*
@@ -137,7 +137,7 @@ execute(function() {
 
     StackScraper.prototype.getShallowQuestion = function(questionid) {
       return this.getQuestionDocuments(questionid).pipe(function(pages) {
-        var answer, key, page$, question, row, status, tag, type, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4;
+        var answer, key, page$, question, row, status, tag, type, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _ref5;
         question = scrapePostElement($('.question', pages[0]));
         question.title = $('#question-header h1 a', pages[0]).text();
         question.tags = (function() {
@@ -171,14 +171,14 @@ execute(function() {
             question.creation_date_z = $('.label-key', row).last().attr('title');
           }
           if (key === 'viewed') {
-            question.view_count = +$('.label-key', row).last().attr('title').split(' ')[0];
+            question.view_count = +((_ref4 = $('.label-key', row).last().text()) != null ? _ref4.split(' ')[0] : void 0);
           }
         }
         for (_k = 0, _len3 = pages.length; _k < _len3; _k++) {
           page$ = pages[_k];
-          _ref4 = page$.find('.answer');
-          for (_l = 0, _len4 = _ref4.length; _l < _len4; _l++) {
-            answer = _ref4[_l];
+          _ref5 = page$.find('.answer');
+          for (_l = 0, _len4 = _ref5.length; _l < _len4; _l++) {
+            answer = _ref5[_l];
             question.answers.push(scrapePostElement($(answer)));
           }
         }
@@ -248,7 +248,7 @@ execute(function() {
         firstPage$ = $(makeDocument(firstSource));
         if (lastPageNav$ = $('.page-numbers:not(.next)').last()) {
           pageCount = +lastPageNav$.text();
-          return $.when.apply($, [firstPage$].concat(__slice.call(((function() {
+          return $.when.apply($, [firstPage$].concat(__slice.call((pageCount > 1 ? (function() {
             var _i, _results;
             _results = [];
             for (pageNumber = _i = 2; 2 <= pageCount ? _i <= pageCount : _i >= pageCount; pageNumber = 2 <= pageCount ? ++_i : --_i) {
@@ -257,7 +257,7 @@ execute(function() {
               }));
             }
             return _results;
-          }).call(_this))))).pipe(function() {
+          }).call(_this) : [])))).pipe(function() {
             var pages;
             pages = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
             return pages;
@@ -319,7 +319,7 @@ execute(function() {
       existingBeforeSend = options.beforeSend;
       if (options.cache == null) options.cache = true;
       options.beforeSend = function(request) {
-        request.setRequestHeader('X-StackScraper-Version', '0.0.8');
+        request.setRequestHeader('X-StackScraper-Version', '0.1.0');
         return existingBeforeSend != null ? existingBeforeSend.apply(this, arguments) : void 0;
       };
       return $.ajax(url, options);
