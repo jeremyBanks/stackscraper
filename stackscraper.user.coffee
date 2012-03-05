@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.2.0
+// @version        0.2.1
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        http://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.2.0'
+  version: '0.2.1'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'https://github.com/extensions/stackscraper/'
   permissions: [
@@ -188,14 +188,14 @@ body = (manifest) ->
       if (communityOwnage$ = post$.find('.community-wiki')).length
         post.community_owned_date_s = communityOwnage$.attr('title')?.match(/as of ([^\.]+)./)[1]
       else
-        if (not communityOwnage$.length) and ownerSig? and $('.user-details', ownerSig).length
+        if (not communityOwnage$.length) and ownerSig? and $('.user-details a', ownerSig).length
           post.owner =
             user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', ownerSig).text()
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, '')
             profile_image: $('.user-gravatar32 img').attr('src')
         
-        if (not communityOwnage$.length) and editorSig? and $('.user-details', editorSig).length
+        if (not communityOwnage$.length) and editorSig? and $('.user-details a', editorSig).length
           post.last_editor =
             user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', editorSig).text()
@@ -423,6 +423,10 @@ body = (manifest) ->
       float: right;
       width: 665px;
     }
+
+    .post .col img {
+      max-width: 665px;
+    }
       
     pre {
       background: #EEE;
@@ -464,20 +468,20 @@ body = (manifest) ->
         <div class="body">
           #{question.body}
         </div>
-        """ + (if question.last_edit_date_s or question.last_editor then """
-          <div class="attribution">
-            edited #{if question.last_editor
-              "by <a href=\"/u/#{encodeHTMLText question.last_editor.user_id}\">#{encodeHTMLText question.last_editor.display_name}<img src=\"#{encodeHTMLText question.last_editor.profile_image}\" alt=\"\" /></a><br>"
-            else '<br>'}
-            #{encodeHTMLText question.last_edit_date_s}
-        </div>
-        """ else '') + 
-        (if question.owner or question.creation_date_s then """
+        """ + (if question.owner or question.creation_date_s then """
           <div class="attribution">
             asked #{if question.owner
               "by <a href=\"/u/#{encodeHTMLText question.owner.user_id}\">#{encodeHTMLText question.owner.display_name}<img src=\"#{encodeHTMLText question.owner.profile_image}\" alt=\"\" /></a><br>"
             else '<br>'}
             #{question.creation_date_s}
+        </div>
+        """ else '') + 
+        (if question.last_edit_date_s or question.last_editor then """
+          <div class="attribution">
+            edited #{if question.last_editor
+              "by <a href=\"/u/#{encodeHTMLText question.last_editor.user_id}\">#{encodeHTMLText question.last_editor.display_name}<img src=\"#{encodeHTMLText question.last_editor.profile_image}\" alt=\"\" /></a><br>"
+            else '<br>'}
+            #{encodeHTMLText question.last_edit_date_s}
         </div>
         """ else '') + """
         <ul class="tags">
@@ -512,20 +516,20 @@ body = (manifest) ->
             #{answer.body}
           </div>
         """ +
-        (if answer.last_edit_date_s or answer.last_editor then """
-          <div class="attribution">
-            edited #{if question.last_editor
-              "by <a href=\"/u/#{encodeHTMLText answer.last_editor.user_id}\">#{encodeHTMLText answer.last_editor.display_name}<img src=\"#{encodeHTMLText answer.last_editor.profile_image}\" alt=\"\" /></a><br>"
-            else '<br>'}
-             #{encodeHTMLText answer.last_edit_date_s}
-        </div>
-        """ else '') + 
         (if answer.owner or answer.creation_date_s then """
           <div class="attribution">
             answered #{if answer.owner
               "by <a href=\"/u/#{encodeHTMLText question.owner.user_id}\">#{encodeHTMLText answer.owner.display_name}<img src=\"#{encodeHTMLText answer.owner.profile_image}\" alt=\"\" /></a><br>"
             else '<br>'}
              #{answer.creation_date_s}
+        </div>
+        """ else '') + 
+        (if answer.last_edit_date_s or answer.last_editor then """
+          <div class="attribution">
+            edited #{if question.last_editor
+              "by <a href=\"/u/#{encodeHTMLText answer.last_editor.user_id}\">#{encodeHTMLText answer.last_editor.display_name}<img src=\"#{encodeHTMLText answer.last_editor.profile_image}\" alt=\"\" /></a><br>"
+            else '<br>'}
+             #{encodeHTMLText answer.last_edit_date_s}
         </div>
         """ else '') +
         """</div>
