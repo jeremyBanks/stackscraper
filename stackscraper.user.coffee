@@ -188,14 +188,14 @@ body = (manifest) ->
       if (communityOwnage$ = post$.find('.community-wiki')).length
         post.community_owned_date_s = communityOwnage$.attr('title')?.match(/as of ([^\.]+)./)[1]
       else
-        if ownerSig? and not communityOwnage$.length
+        if (not communityOwnage$.length) and ownerSig? and $('.user-details', ownerSig).length
           post.owner =
             user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', ownerSig).text()
             reputation: $('.reputation-score', ownerSig).text().replace(/,/g, '')
             profile_image: $('.user-gravatar32 img').attr('src')
         
-        if editorSig? and not communityOwnage$.length
+        if (not communityOwnage$.length) and editorSig? and $('.user-details', editorSig).length
           post.last_editor =
             user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2]
             display_name: $('.user-details a', editorSig).text()

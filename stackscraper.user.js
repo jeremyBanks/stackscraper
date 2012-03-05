@@ -232,7 +232,7 @@ body = function(manifest) {
       if ((communityOwnage$ = post$.find('.community-wiki')).length) {
         post.community_owned_date_s = (_ref = communityOwnage$.attr('title')) != null ? _ref.match(/as of ([^\.]+)./)[1] : void 0;
       } else {
-        if ((ownerSig != null) && !communityOwnage$.length) {
+        if ((!communityOwnage$.length) && (ownerSig != null) && $('.user-details', ownerSig).length) {
           post.owner = {
             user_id: +$('.user-details a', ownerSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', ownerSig).text(),
@@ -240,7 +240,7 @@ body = function(manifest) {
             profile_image: $('.user-gravatar32 img').attr('src')
           };
         }
-        if ((editorSig != null) && !communityOwnage$.length) {
+        if ((!communityOwnage$.length) && (editorSig != null) && $('.user-details', editorSig).length) {
           post.last_editor = {
             user_id: +$('.user-details a', editorSig).attr('href').split(/\//g)[2],
             display_name: $('.user-details a', editorSig).text(),
