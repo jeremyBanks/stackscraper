@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.2.7
+// @version        0.2.8
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.2.7'
+  version: '0.2.8'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -57,7 +57,7 @@ body = (manifest) ->
 
     $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download an HTML copy of this post">html</a>').click ->
       $(this).addClass 'ac_loading'
-      stackScraper.getQuestion(questionId).then (question) ->
+      stackScraper.getQuestion(questionId).then (question) =>
         bb = new BlobBuilder
         bb.append renderQuestion(question)
         $(@).removeClass 'ac_loading'
@@ -253,7 +253,7 @@ body = (manifest) ->
       @ajax("/posts/#{postid}/comments").pipe (commentsSource) =>
         commentPage$ = $(makeDocument("<body><table>#{commentsSource}</table></body>"))
         postComments = []
-        $('.comment').each ->
+        $('.comment', commentPage$).each ->
           postComments.push
             comment_id: $(@).attr('id').split('-')[2]
             score: +($.trim($('.comment-score', @).text()) ? 0)
@@ -347,18 +347,12 @@ body = (manifest) ->
       text-align: center;
     }
     
-    .comments {
-      padding: .25em .5em;
-      border: .25em solid #EEE;
-      background: #F8F8F8;
-      display: none;
-    }
       
       .source-header a, .source-header a:visited {
         color: black;
       }
       
-    .post .score {
+    .post .metrics {
       float: left;
       text-align: center;
       width: 58px;
@@ -373,19 +367,19 @@ body = (manifest) ->
         margin-top: 1em;
     }
       
-      .post .score .value {
+      .post .metrics .value {
         display: block;
         font-weight: bold;
         font-size: 1.3em;
         margin: 3px 0 0;
       }
         
-      .post .score .unit {
+      .post .metrics .unit {
         display: block;
         opacity: 0.5;
       }
         
-      .post .score .annotation {
+      .post .metrics .annotation {
         display: block;
         font-weight: bold;
         font-size: 0.8em;
@@ -485,12 +479,23 @@ body = (manifest) ->
       text-decoration: underline;
     }
     
-    .commments {
+    .comments {
       display: none;
     }
     
     .comments:target {
       display: block;
+    }
+    
+    
+    .comments .comment {
+      padding: .125em;
+      border: .125em solid #EEE;
+      background: #F8F8F8;
+    }
+    
+    .comments .comment .score, .comments .comment .author {
+      font-weight: bold;
     }
   </style>
 </head>
@@ -499,14 +504,14 @@ body = (manifest) ->
     <div class="question post" id="#{encodeHTMLText question.post_id}">
       <h1>#{encodeHTMLText question.title}</h1>
       
-      <div class="score">
+      <div class="metrics">
         <span class="value">#{question.score}</span>
         <span class="unit">votes</span>
         <br>
         <span class="value">#{question.view_count}</span>
         <span class="unit">views</span>
           #{if question.comments.length
-            "<br><a href=\"javascript:void(location.hash = '#{question.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{question.comments.length}</span><span class=\"unit\" style=\"font-size: 50%;\">comments</span></a>"
+            "<br><a href=\"javascript:void(location.hash = '#{question.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{question.comments.length}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
           else ''}
       </div>
       <div class="col">
@@ -537,11 +542,14 @@ body = (manifest) ->
       
       <div style="clear: both;"></div>
       
-        
       """ + (if question.comments.length then """
         <div class="comments" id="#{question.post_id}-comments">
           #{(for comment in question.comments
-          "<p><strong>[#{comment.score}] <a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</strong> #{comment.body}</p>"
+            "<div class=\"comment\">" +
+              "<span class=\"score\">[#{comment.score}]</span> " +
+              "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</span> " +
+              "<span class=\"body\">#{comment.body}</span>" +
+            "</div>"
           ).join('\n')}
         </div>
       """ else '') + """
@@ -561,11 +569,11 @@ body = (manifest) ->
     """ + (for answer in question.answers
       """
       <div class="answer post" id="#{encodeHTMLText answer.post_id}">
-        <div class="score">
+        <div class="metrics">
           <span class="value">#{answer.score}</span>
           <span class="unit">votes</span>
           #{if answer.comments.length
-            "<a href=\"javascript:void(location.hash = '#{answer.post_id}-comments')\" + '#' + answer.post_id}-comments\" style=\"text-decoration: none;\"><span class=\"value\">#{answer.comments.length}</span><span class=\"unit\" style=\"font-size: 50%;\">comments</span></a>"
+            "<br><a href=\"javascript:void(location.hash = '#{answer.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{answer.comments.length}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
           else ''}
         </div>
         <div class="col">
@@ -589,17 +597,24 @@ body = (manifest) ->
              #{encodeHTMLText answer.last_edit_date_s}
         </div>
         """ else '') +
-        """</div>
+        
+        """
       <div style="clear: both;"></div>
       
       """ + (if answer.comments.length then """
-        <div class="comments" id="#{String(window.location) + '#' + answer.post_id}-comments">
+        <div class="comments" id="#{answer.post_id}-comments">
           #{(for comment in answer.comments
-          "<br><p><strong>[#{comment.score}] <a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</strong> #{comment.body}</p>"
+            "<div class=\"comment\">" +
+              "<span class=\"score\">[#{comment.score}]</span> " +
+              "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</span> " +
+              "<span class=\"body\">#{comment.body}</span>" +
+            "</div>"
           ).join('\n')}
         </div>
       """ else '') + """
-      </div>
+
+      </div></div>
+      <div style="clear: both;"></div>
       """
     ).join('\n') + """</div>
     <div class="footer">

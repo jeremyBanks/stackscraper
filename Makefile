@@ -1,4 +1,4 @@
-all:
+what-i-want:
 	# compile user script
 	coffee --bare --compile stackscraper.user.coffee
 	
@@ -11,3 +11,6 @@ all:
 	
 	# generate html of the annotated source source with docco
 	docco stackscraper.user.coffee
+	
+	# copy js to clipboard for pasting into the JS console
+	cat stackscraper.user.js | pbcopy
