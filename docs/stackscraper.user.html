@@ -1,6 +1,6 @@
 <!DOCTYPE html>  <html> <head>   <title>stackscraper.user.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               stackscraper.user.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="o">`</span><span class="err">// ==UserScript==</span>
 <span class="o">/</span><span class="err">/ @name           StackScraper</span>
-<span class="o">/</span><span class="err">/ @version        0.2.6</span>
+<span class="o">/</span><span class="err">/ @version        0.2.7</span>
 <span class="o">/</span><span class="sr">/ @namespace      http:/</span><span class="o">/</span><span class="nx">extensions</span><span class="p">.</span><span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="sr">/stackscraper/</span>
 <span class="o">/</span><span class="err">/ @description    Adds download options to Stack Exchange questions.</span>
 <span class="o">/</span><span class="sr">/ @include        *:/</span><span class="o">/*</span><span class="p">.</span><span class="nx">stackexchange</span><span class="p">.</span><span class="nx">com</span><span class="sr">/questions/</span><span class="o">*</span>
@@ -21,7 +21,7 @@
 
 <span class="nv">manifest = </span>
   <span class="nv">name: </span><span class="s1">&#39;StackScraper&#39;</span>
-  <span class="nv">version: </span><span class="s1">&#39;0.2.6&#39;</span>
+  <span class="nv">version: </span><span class="s1">&#39;0.2.7&#39;</span>
   <span class="nv">description: </span><span class="s1">&#39;Adds download options to Stack Exchange questions.&#39;</span>
   <span class="nv">homepage_url: </span><span class="s1">&#39;http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html&#39;</span>
   <span class="nv">permissions: </span><span class="p">[</span>
@@ -45,22 +45,22 @@
     <span class="vi">@stackScraper = </span><span class="nv">stackScraper = </span><span class="k">new</span> <span class="nx">StackScraper</span>
     <span class="nv">questionId = </span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#question&#39;</span><span class="p">).</span><span class="nx">data</span><span class="p">(</span><span class="s1">&#39;questionid&#39;</span><span class="p">)</span>
 
-    <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#question .post-menu&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;&lt;span class=&quot;lsep&quot;&gt;|&lt;/span&gt;&#39;</span><span class="p">).</span><span class="nx">append</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;&lt;a href=&quot;#&quot; title=&quot;download a JSON copy of this post&quot;&gt;JSON&lt;/a&gt;&#39;</span><span class="p">).</span><span class="nx">click</span> <span class="o">-&gt;</span>
-      <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s1">&#39;ac_loading&#39;</span><span class="p">)</span>
+    <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#question .post-menu&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;&lt;span class=&quot;lsep&quot;&gt;|&lt;/span&gt;&#39;</span><span class="p">).</span><span class="nx">append</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;&lt;a href=&quot;#&quot; title=&quot;download a JSON copy of this post&quot;&gt;json&lt;/a&gt;&#39;</span><span class="p">).</span><span class="nx">click</span> <span class="o">-&gt;</span>
+      <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">addClass</span> <span class="s1">&#39;ac_loading&#39;</span>
       <span class="nx">stackScraper</span><span class="p">.</span><span class="nx">getQuestion</span><span class="p">(</span><span class="nx">questionId</span><span class="p">).</span><span class="k">then</span> <span class="p">(</span><span class="nx">question</span><span class="p">)</span> <span class="o">=&gt;</span>
         <span class="nv">bb = </span><span class="k">new</span> <span class="nx">BlobBuilder</span>
         <span class="nx">bb</span><span class="p">.</span><span class="nx">append</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">question</span><span class="p">)</span>
-        <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">removeClass</span><span class="p">(</span><span class="s1">&#39;ac_loading&#39;</span><span class="p">)</span>
+        <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">removeClass</span> <span class="s1">&#39;ac_loading&#39;</span>
         <span class="nb">window</span><span class="p">.</span><span class="nv">location = </span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">bb</span><span class="p">.</span><span class="nx">getBlob</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;#question-#{questionId}.json&quot;</span>
     
       <span class="kc">false</span>
 
-    <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#question .post-menu&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;&lt;span class=&quot;lsep&quot;&gt;|&lt;/span&gt;&#39;</span><span class="p">).</span><span class="nx">append</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;&lt;a href=&quot;#&quot; title=&quot;download an HTML copy of this post&quot;&gt;HTML&lt;/a&gt;&#39;</span><span class="p">).</span><span class="nx">click</span> <span class="o">-&gt;</span>
-      <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">addClass</span><span class="p">(</span><span class="s1">&#39;ac_loading&#39;</span><span class="p">)</span>
+    <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#question .post-menu&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;&lt;span class=&quot;lsep&quot;&gt;|&lt;/span&gt;&#39;</span><span class="p">).</span><span class="nx">append</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;&lt;a href=&quot;#&quot; title=&quot;download an HTML copy of this post&quot;&gt;html&lt;/a&gt;&#39;</span><span class="p">).</span><span class="nx">click</span> <span class="o">-&gt;</span>
+      <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">addClass</span> <span class="s1">&#39;ac_loading&#39;</span>
       <span class="nx">stackScraper</span><span class="p">.</span><span class="nx">getQuestion</span><span class="p">(</span><span class="nx">questionId</span><span class="p">).</span><span class="k">then</span> <span class="nf">(question) -&gt;</span>
         <span class="nv">bb = </span><span class="k">new</span> <span class="nx">BlobBuilder</span>
         <span class="nx">bb</span><span class="p">.</span><span class="nx">append</span> <span class="nx">renderQuestion</span><span class="p">(</span><span class="nx">question</span><span class="p">)</span>
-        <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">removeClass</span><span class="p">(</span><span class="s1">&#39;ac_loading&#39;</span><span class="p">)</span>
+        <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">removeClass</span> <span class="s1">&#39;ac_loading&#39;</span>
         <span class="nb">window</span><span class="p">.</span><span class="nv">location = </span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">bb</span><span class="p">.</span><span class="nx">getBlob</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;#question-#{questionId}.html&quot;</span>
     
       <span class="kc">false</span>
@@ -88,6 +88,9 @@ deferred results and the wrapped function won't be called more often than once e
           <span class="p">,</span> <span class="nx">interval</span>
       
         <span class="nx">resultP</span>
+      <span class="nv">throttled.throttle = </span><span class="nx">throttle</span>
+      <span class="nv">throttled.wrapped = </span><span class="nx">f</span>
+      <span class="nx">throttled</span>
 
   <span class="nv">makeDocument = </span><span class="nf">(html, title = &#39;&#39;) -&gt;</span>
     <span class="nv">doc = </span><span class="nb">document</span><span class="p">.</span><span class="nx">implementation</span><span class="p">.</span><span class="nx">createHTMLDocument</span><span class="p">(</span><span class="nx">title</span><span class="p">)</span>
@@ -97,6 +100,7 @@ deferred results and the wrapped function won't be called more often than once e
   <span class="k">class</span> <span class="nx">StackScraper</span>
     <span class="nv">constructor: </span><span class="o">-&gt;</span>
       <span class="vi">@questions = </span><span class="p">{}</span>
+      <span class="vi">@throttles = </span><span class="p">{}</span>
       
     <span class="nv">getQuestion: </span><span class="nf">(questionid) -&gt;</span>
       <span class="k">if</span> <span class="nx">questionid</span> <span class="k">of</span> <span class="nx">@questions</span>
@@ -164,7 +168,7 @@ deferred results and the wrapped function won't be called more often than once e
           <span class="k">if</span> <span class="nx">key</span> <span class="o">is</span> <span class="s1">&#39;asked&#39;</span>
             <span class="nv">question.creation_date_z = </span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;.label-key&#39;</span><span class="p">,</span> <span class="nx">row</span><span class="p">).</span><span class="nx">last</span><span class="p">().</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="nx">key</span> <span class="o">is</span> <span class="s1">&#39;viewed&#39;</span>
-            <span class="nv">question.view_count = </span><span class="o">+</span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;.label-key&#39;</span><span class="p">,</span> <span class="nx">row</span><span class="p">).</span><span class="nx">last</span><span class="p">().</span><span class="nx">text</span><span class="p">()</span><span class="o">?</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="nv">question.view_count = </span><span class="o">+</span><span class="nx">$</span><span class="p">(</span><span class="s1">&#39;.label-key&#39;</span><span class="p">,</span> <span class="nx">row</span><span class="p">).</span><span class="nx">last</span><span class="p">().</span><span class="nx">text</span><span class="p">()</span><span class="o">?</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">].</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/,/g</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
       
         <span class="k">for</span> <span class="nx">page$</span> <span class="k">in</span> <span class="nx">pages</span>
           <span class="k">for</span> <span class="nx">answer</span> <span class="k">in</span> <span class="nx">page$</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">&#39;.answer&#39;</span><span class="p">)</span>
@@ -228,7 +232,7 @@ deferred results and the wrapped function won't be called more often than once e
           <span class="nv">pageCount = </span><span class="o">+</span><span class="nx">lastPageNav$</span><span class="p">.</span><span class="nx">text</span><span class="p">()</span>
         
           <span class="nx">$</span><span class="p">.</span><span class="k">when</span><span class="p">(</span><span class="nx">firstPage$</span><span class="p">,</span> <span class="p">(</span><span class="k">if</span> <span class="nx">pageCount</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">then</span> <span class="p">(</span><span class="k">for</span> <span class="nx">pageNumber</span> <span class="k">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">..</span><span class="nx">pageCount</span><span class="p">]</span>
-            <span class="nx">@ajax</span><span class="p">(</span><span class="s2">&quot;/questions/#{questionid}?page=#{pageNumber}&amp;noredirect=1&quot;</span><span class="p">).</span><span class="nx">pipe</span> <span class="nf">(source) -&gt;</span>
+            <span class="nx">@ajax</span><span class="p">(</span><span class="s2">&quot;/questions/#{questionid}?page=#{pageNumber}&amp;noredirect=1&amp;answertab=votes&quot;</span><span class="p">).</span><span class="nx">pipe</span> <span class="nf">(source) -&gt;</span>
               <span class="nx">$</span><span class="p">(</span><span class="nx">makeDocument</span><span class="p">(</span><span class="nx">source</span><span class="p">))</span>
           <span class="p">)</span> <span class="k">else</span> <span class="p">[])...).</span><span class="nx">pipe</span> <span class="nf">(pages...) -&gt;</span> <span class="nx">pages</span>
         <span class="k">else</span>
@@ -255,16 +259,21 @@ deferred results and the wrapped function won't be called more often than once e
         <span class="nx">postComments</span>
     
     <span class="nv">getPostVoteCount: </span><span class="nf">(postid) -&gt;</span>
-      <span class="nx">@ajax</span><span class="p">(</span><span class="s2">&quot;/posts/#{postid}/vote-counts&quot;</span><span class="p">,</span> <span class="nv">dataType: </span><span class="s1">&#39;json&#39;</span><span class="p">).</span><span class="nx">pipe</span> <span class="p">(</span><span class="nx">voteCounts</span><span class="p">)</span> <span class="o">=&gt;</span>
+      <span class="nx">@throttledAjax</span><span class="p">(</span><span class="s1">&#39;get-vote-count&#39;</span><span class="p">,</span> <span class="mi">1400</span><span class="p">,</span> <span class="s2">&quot;/posts/#{postid}/vote-counts&quot;</span><span class="p">,</span> <span class="nv">dataType: </span><span class="s1">&#39;json&#39;</span><span class="p">).</span><span class="nx">pipe</span> <span class="p">(</span><span class="nx">voteCounts</span><span class="p">)</span> <span class="o">=&gt;</span>
         <span class="p">(</span><span class="nv">up: </span><span class="o">+</span><span class="nx">voteCounts</span><span class="p">.</span><span class="nx">up</span><span class="p">,</span> <span class="nv">down: </span><span class="o">+</span><span class="nx">voteCounts</span><span class="p">.</span><span class="nx">down</span><span class="p">)</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>be nice: wrap $.ajax to add our throttle and header.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">ajax: </span><span class="p">(</span><span class="nx">makeThrottle</span> <span class="mi">1000</span><span class="p">)</span> <span class="nf">(url, options = {}) -&gt;</span>
-      <span class="nv">existingBeforeSend = </span><span class="nx">options</span><span class="p">.</span><span class="nx">beforeSend</span><span class="p">;</span>
-      <span class="nx">options</span><span class="p">.</span><span class="nx">cache</span> <span class="o">?=</span> <span class="kc">true</span>
-      <span class="nv">options.beforeSend = </span><span class="nf">(request) -&gt;</span>
-        <span class="nx">request</span><span class="p">.</span><span class="nx">setRequestHeader</span> <span class="s1">&#39;X-StackScraper-Version&#39;</span><span class="p">,</span> <span class="nx">manifest</span><span class="p">.</span><span class="nx">version</span>
-        <span class="k">return</span> <span class="nx">existingBeforeSend</span><span class="o">?</span><span class="p">.</span><span class="nx">apply</span> <span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span>
-      <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
-  
+  </pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>be nice: wrap $.ajax to add our throttle and header.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">ajax: </span><span class="nf">(url, options = {}) -&gt;</span>
+      <span class="nx">@throttledAjax</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="mi">400</span><span class="p">,</span> <span class="nx">url</span><span class="p">,</span> <span class="nx">options</span>
+    
+    <span class="nv">throttledAjax: </span><span class="nf">(throttleName, throttleDelay, url, options = {}) -&gt;</span>
+      <span class="nv">throttle = </span><span class="nx">@throttles</span><span class="p">[</span><span class="nx">throttleName</span><span class="p">]</span> <span class="o">?=</span>  <span class="nx">makeThrottle</span><span class="p">(</span><span class="nx">throttleDelay</span><span class="p">)(</span><span class="nf">(f) -&gt;</span> <span class="nx">f</span><span class="p">())</span>
+      <span class="nx">throttle</span> <span class="o">-&gt;</span>
+        <span class="nv">existingBeforeSend = </span><span class="nx">options</span><span class="p">.</span><span class="nx">beforeSend</span><span class="p">;</span>
+        <span class="nx">options</span><span class="p">.</span><span class="nx">cache</span> <span class="o">?=</span> <span class="kc">true</span>
+        <span class="nv">options.beforeSend = </span><span class="nf">(request) -&gt;</span>
+          <span class="nx">request</span><span class="p">.</span><span class="nx">setRequestHeader</span> <span class="s1">&#39;X-StackScraper-Version&#39;</span><span class="p">,</span> <span class="nx">manifest</span><span class="p">.</span><span class="nx">version</span>
+          <span class="k">return</span> <span class="nx">existingBeforeSend</span><span class="o">?</span><span class="p">.</span><span class="nx">apply</span> <span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span>
+        <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
+    
   <span class="nv">encodeHTMLText = </span><span class="nf">(text) -&gt;</span>
     <span class="nb">String</span><span class="p">(</span><span class="nx">text</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&amp;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;amp;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&lt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;lt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&gt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&gt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&quot;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;quot;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&quot;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;#39;&#39;</span><span class="p">)</span>
   
@@ -312,7 +321,6 @@ deferred results and the wrapped function won't be called more often than once e
       <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.2</span><span class="nx">em</span><span class="p">;</span>
     <span class="p">}</span>
       
-      
     <span class="nx">h2</span><span class="p">.</span><span class="nx">answers</span> <span class="p">{</span>
       <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="nx">black</span><span class="p">;</span>
     <span class="p">}</span>
@@ -331,6 +339,13 @@ deferred results and the wrapped function won't be called more often than once e
       <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">left</span><span class="p">;</span>
       <span class="nv">margin: </span><span class="mf">0.5</span><span class="nx">em</span> <span class="mi">0</span><span class="p">;</span>
       <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+    <span class="p">.</span><span class="nx">comments</span> <span class="p">{</span>
+      <span class="nv">padding: </span><span class="p">.</span><span class="mi">25</span><span class="nx">em</span> <span class="p">.</span><span class="mi">5</span><span class="nx">em</span><span class="p">;</span>
+      <span class="nv">border: </span><span class="p">.</span><span class="mi">25</span><span class="nx">em</span> <span class="nx">solid</span> <span class="c1">#EEE;</span>
+      <span class="nv">background: </span><span class="c1">#F8F8F8;</span>
+      <span class="nv">display: </span><span class="nx">none</span><span class="p">;</span>
     <span class="p">}</span>
       
       <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="nx">a</span><span class="p">,</span> <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="nx">a</span><span class="o">:</span><span class="nx">visited</span> <span class="p">{</span>
@@ -434,7 +449,10 @@ deferred results and the wrapped function won't be called more often than once e
     <span class="p">}</span>
     
     <span class="nx">blockquote</span> <span class="p">{</span>
-      <span class="nv">padding: </span><span class="p">.</span><span class="mi">5</span><span class="nx">em</span><span class="p">;</span>
+      <span class="nv">margin: </span><span class="p">.</span><span class="mi">5</span><span class="nx">em</span> <span class="p">.</span><span class="mi">25</span><span class="nx">em</span><span class="p">;</span>
+      <span class="nx">margin</span><span class="o">-</span><span class="nv">bottom: </span><span class="p">.</span><span class="mi">75</span><span class="nx">em</span><span class="p">;</span>
+      <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+      <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="mf">0.5</span><span class="nx">em</span><span class="p">;</span>
       <span class="nv">background: </span><span class="c1">#EEE;</span>
     <span class="p">}</span>
       
@@ -460,6 +478,14 @@ deferred results and the wrapped function won't be called more often than once e
     <span class="p">.</span><span class="nx">footer</span> <span class="nx">a</span><span class="o">:</span><span class="nx">hover</span> <span class="p">{</span>
       <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">underline</span><span class="p">;</span>
     <span class="p">}</span>
+    
+    <span class="p">.</span><span class="nx">commments</span> <span class="p">{</span>
+      <span class="nv">display: </span><span class="nx">none</span><span class="p">;</span>
+    <span class="p">}</span>
+    
+    <span class="p">.</span><span class="nx">comments</span><span class="o">:</span><span class="nx">target</span> <span class="p">{</span>
+      <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
+    <span class="p">}</span>
   <span class="o">&lt;</span><span class="err">/style&gt;</span>
 <span class="o">&lt;</span><span class="err">/head&gt;</span>
 <span class="o">&lt;</span><span class="nx">body</span><span class="o">&gt;</span>
@@ -473,6 +499,9 @@ deferred results and the wrapped function won't be called more often than once e
         <span class="o">&lt;</span><span class="nx">br</span><span class="o">&gt;</span>
         <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="o">&gt;</span><span class="c1">#{question.view_count}&lt;/span&gt;</span>
         <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;unit&quot;</span><span class="o">&gt;</span><span class="nx">views</span><span class="o">&lt;</span><span class="err">/span&gt;</span>
+          <span class="c1">#{if question.comments.length</span>
+            <span class="s2">&quot;&lt;br&gt;&lt;a href=\&quot;javascript:void(location.hash = &#39;#{question.post_id}-comments&#39;)\&quot; style=\&quot;text-decoration: none;\&quot;&gt;&lt;span class=\&quot;value\&quot;&gt;#{question.comments.length}&lt;/span&gt;&lt;span class=\&quot;unit\&quot; style=\&quot;font-size: 50%;\&quot;&gt;comments&lt;/span&gt;&lt;/a&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
       <span class="o">&lt;</span><span class="err">/div&gt;</span>
       <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;col&quot;</span><span class="o">&gt;</span>
         <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="o">&gt;</span>
@@ -502,9 +531,18 @@ deferred results and the wrapped function won't be called more often than once e
       
       <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="s2">&quot;clear: both;&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
       
+        
+      <span class="s2">&quot;&quot;&quot; + (if question.comments.length then &quot;&quot;&quot;</span>
+        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;comments&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{question.post_id}-comments&quot;</span><span class="o">&gt;</span>
+          <span class="c1">#{(for comment in question.comments</span>
+          <span class="s2">&quot;&lt;p&gt;&lt;strong&gt;[#{comment.score}] &lt;a href=\&quot;/u/#{comment.user_id}\&quot;&gt;#{encodeHTMLText comment.display_name}&lt;/a&gt;:&lt;/strong&gt; #{comment.body}&lt;/p&gt;&quot;</span>
+          <span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)}</span>
+        <span class="o">&lt;</span><span class="err">/div&gt;</span>
+      <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + &quot;&quot;&quot;</span>
         <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;source-header&quot;</span><span class="o">&gt;</span>
           <span class="nx">This</span> <span class="nx">was</span> <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;/q/#{question.post_id}&quot;</span><span class="o">&gt;</span><span class="nx">originally</span> <span class="nx">posted</span><span class="o">&lt;</span><span class="err">/a&gt; on Stack Exchange#{if question.deleted then &#39;, but it has been deleted&#39; else &#39;&#39;}.</span>
         <span class="o">&lt;</span><span class="err">/div&gt;</span>
+        
       <span class="o">&lt;</span><span class="err">/div&gt;</span>
     <span class="o">&lt;</span><span class="err">/div&gt;  </span>
     
@@ -520,6 +558,9 @@ deferred results and the wrapped function won't be called more often than once e
         <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;score&quot;</span><span class="o">&gt;</span>
           <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="o">&gt;</span><span class="c1">#{answer.score}&lt;/span&gt;</span>
           <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;unit&quot;</span><span class="o">&gt;</span><span class="nx">votes</span><span class="o">&lt;</span><span class="err">/span&gt;</span>
+          <span class="c1">#{if answer.comments.length</span>
+            <span class="s2">&quot;&lt;a href=\&quot;javascript:void(location.hash = &#39;#{answer.post_id}-comments&#39;)\&quot; + &#39;#&#39; + answer.post_id}-comments\&quot; style=\&quot;text-decoration: none;\&quot;&gt;&lt;span class=\&quot;value\&quot;&gt;#{answer.comments.length}&lt;/span&gt;&lt;span class=\&quot;unit\&quot; style=\&quot;font-size: 50%;\&quot;&gt;comments&lt;/span&gt;&lt;/a&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
         <span class="o">&lt;</span><span class="err">/div&gt;</span>
         <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;col&quot;</span><span class="o">&gt;</span>
           <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="o">&gt;</span>
@@ -544,6 +585,14 @@ deferred results and the wrapped function won't be called more often than once e
         <span class="s2">&quot;&quot;&quot; else &#39;&#39;) +</span>
 <span class="s2">        &quot;&quot;&quot;</span><span class="o">&lt;</span><span class="err">/div&gt;</span>
       <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="s2">&quot;clear: both;&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
+      
+      <span class="s2">&quot;&quot;&quot; + (if answer.comments.length then &quot;&quot;&quot;</span>
+        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;comments&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{String(window.location) + &#39;#&#39; + answer.post_id}-comments&quot;</span><span class="o">&gt;</span>
+          <span class="c1">#{(for comment in answer.comments</span>
+          <span class="s2">&quot;&lt;br&gt;&lt;p&gt;&lt;strong&gt;[#{comment.score}] &lt;a href=\&quot;/u/#{comment.user_id}\&quot;&gt;#{encodeHTMLText comment.display_name}&lt;/a&gt;:&lt;/strong&gt; #{comment.body}&lt;/p&gt;&quot;</span>
+          <span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)}</span>
+        <span class="o">&lt;</span><span class="err">/div&gt;</span>
+      <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + &quot;&quot;&quot;</span>
       <span class="o">&lt;</span><span class="err">/div&gt;</span>
       <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">    ).join(&#39;\n&#39;) + &quot;&quot;&quot;</span><span class="o">&lt;</span><span class="err">/div&gt;</span>
