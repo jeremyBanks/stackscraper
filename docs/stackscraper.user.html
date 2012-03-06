@@ -1,6 +1,6 @@
 <!DOCTYPE html>  <html> <head>   <title>stackscraper.user.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               stackscraper.user.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="o">`</span><span class="err">// ==UserScript==</span>
 <span class="o">/</span><span class="err">/ @name           StackScraper</span>
-<span class="o">/</span><span class="err">/ @version        0.2.8</span>
+<span class="o">/</span><span class="err">/ @version        0.2.9</span>
 <span class="o">/</span><span class="sr">/ @namespace      http:/</span><span class="o">/</span><span class="nx">extensions</span><span class="p">.</span><span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="sr">/stackscraper/</span>
 <span class="o">/</span><span class="err">/ @description    Adds download options to Stack Exchange questions.</span>
 <span class="o">/</span><span class="sr">/ @include        *:/</span><span class="o">/*</span><span class="p">.</span><span class="nx">stackexchange</span><span class="p">.</span><span class="nx">com</span><span class="sr">/questions/</span><span class="o">*</span>
@@ -21,7 +21,7 @@
 
 <span class="nv">manifest = </span>
   <span class="nv">name: </span><span class="s1">&#39;StackScraper&#39;</span>
-  <span class="nv">version: </span><span class="s1">&#39;0.2.8&#39;</span>
+  <span class="nv">version: </span><span class="s1">&#39;0.2.9&#39;</span>
   <span class="nv">description: </span><span class="s1">&#39;Adds download options to Stack Exchange questions.&#39;</span>
   <span class="nv">homepage_url: </span><span class="s1">&#39;http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html&#39;</span>
   <span class="nv">permissions: </span><span class="p">[</span>
@@ -281,10 +281,11 @@ deferred results and the wrapped function won't be called more often than once e
     <span class="s2">&quot;&quot;&quot;&lt;!doctype html&gt;&lt;html&gt;</span>
 <span class="s2">&lt;head&gt;</span>
 <span class="s2">  &lt;meta charset=&quot;</span><span class="nx">utf</span><span class="o">-</span><span class="mi">8</span><span class="s2">&quot; /&gt;</span>
-<span class="s2">  &lt;title&gt;</span>
-<span class="s2">    #{encodeHTMLText question.title}</span>
-<span class="s2">  &lt;/title&gt;</span>
-<span class="s2">  #{if base then &quot;</span><span class="o">&lt;</span><span class="nx">base</span> <span class="nx">href</span><span class="o">=</span><span class="err">\</span><span class="s2">&quot;#{base}\&quot; /&gt;&quot;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+<span class="s2">  &lt;meta name=&quot;</span><span class="nx">generator</span><span class="s2">&quot; content=&quot;</span><span class="nx">StackScraper</span> <span class="c1">#{manifest.version}&quot; /&gt; </span>
+  <span class="o">&lt;</span><span class="nx">title</span><span class="o">&gt;</span>
+    <span class="c1">#{encodeHTMLText question.title}</span>
+  <span class="o">&lt;</span><span class="err">/title&gt;</span>
+  <span class="c1">#{if base then &quot;&lt;base href=\&quot;#{base}\&quot; /&gt;&quot; else &#39;&#39;}</span>
   <span class="o">&lt;</span><span class="nx">style</span><span class="o">&gt;</span>
     <span class="nx">html</span> <span class="p">{</span>
       <span class="nv">background: </span><span class="c1">#D8D8D8;</span>
@@ -614,6 +615,13 @@ deferred results and the wrapped function won't be called more often than once e
     <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;footer&quot;</span><span class="o">&gt;</span>
       <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="o">&gt;</span><span class="nx">exported</span> <span class="nx">using</span> <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;#{encodeHTMLText manifest.homepage_url}&quot;</span><span class="o">&gt;</span><span class="nx">StackScraper</span><span class="o">&lt;</span><span class="err">/a&gt;&lt;/a&gt;</span>
     <span class="o">&lt;</span><span class="err">/div&gt;</span>
+<span class="o">&lt;</span><span class="nx">script</span><span class="o">&gt;</span>
+<span class="nx">var</span> <span class="nv">QUESTION =</span>
+<span class="err">// BEGIN QUESTION JSON</span>
+<span class="c1">#{JSON.stringify question}</span>
+<span class="o">/</span><span class="err">/ END QUESTION JSON</span>
+<span class="p">;</span>
+<span class="o">&lt;</span><span class="err">/script&gt;</span>
   <span class="o">&lt;</span><span class="err">/body&gt;</span>
 <span class="o">&lt;</span><span class="err">/html&gt;&quot;&quot;&quot;</span>
   
