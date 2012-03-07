@@ -9,8 +9,5 @@ what-i-want:
 	rm for-chrome-web-store.zip; true
 	zip for-chrome-web-store.zip manifest.json stackscraper.user.js stackscraper.user.coffee icon128.png
 	
-	# generate html of the annotated source source with docco
-	docco stackscraper.user.coffee
-	
-	# copy js to clipboard for pasting into the JS console
-	cat stackscraper.user.js | pbcopy
+	# install in Chrome
+	open -a /Applications/Google\ Chrome.app stackscraper.user.js 

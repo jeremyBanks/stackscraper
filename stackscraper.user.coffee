@@ -1,27 +1,29 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.2.9
+// @version        0.3.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
-// @include        *://*.stackexchange.com/questions/*
-// @include        *://stackoverflow.com/questions/*
-// @include        *://*.stackoverflow.com/questions/*
-// @include        *://superuser.com/questions/*
-// @include        *://*.superuser.com/questions/*
-// @include        *://serverfault.com/questions/*
-// @include        *://*.serverfault.com/questions/*
-// @include        *://stackapps.com/questions/*
-// @include        *://*.stackapps.com/questions/*
-// @include        *://askubuntu.com/questions/*
-// @include        *://*.askubuntu.com/questions/*
-// @include        *://answers.onstartups.com/questions/*
-// @include        *://*.answers.onstartups.com/questions/*
+// @include        *://*.stackexchange.com/*
+// @include        *://stackoverflow.com/*
+// @include        *://*.stackoverflow.com/*
+// @include        *://superuser.com/*
+// @include        *://*.superuser.com/*
+// @include        *://serverfault.com/*
+// @include        *://*.serverfault.com/*
+// @include        *://stackapps.com/*
+// @include        *://*.stackapps.com/*
+// @include        *://askubuntu.com/*
+// @include        *://*.askubuntu.com/*
+// @include        *://answers.onstartups.com/*
+// @include        *://*.answers.onstartups.com/*
+// @include        *://*.answers.onstartups.com/*
+// @include        *://*/*
 // ==/UserScript==
 `
 
 manifest = 
   name: 'StackScraper'
-  version: '0.2.9'
+  version: '0.2.8'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -32,6 +34,7 @@ manifest =
     '*://*.askubuntu.com/*'
     '*://*.answers.onstartups.com/*'
     '*://*.stackapps.com/*'
+    '*://*/*'
   ]
   content_scripts: [matches: ['*'], js: ['stackscraper.user.js']]
   icons: 128: 'icon128.png'
@@ -45,22 +48,22 @@ body = (manifest) ->
     @stackScraper = stackScraper = new StackScraper
     questionId = $('#question').data('questionid')
 
-    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">json</a>').click ->
-      $(@).addClass 'ac_loading'
+    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">JSON</a>').click ->
+      $(@).addClass('ac_loading')
       stackScraper.getQuestion(questionId).then (question) =>
         bb = new BlobBuilder
         bb.append JSON.stringify(question)
-        $(@).removeClass 'ac_loading'
+        $(@).removeClass('ac_loading')
         window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
     
       false
 
-    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download an HTML copy of this post">html</a>').click ->
-      $(this).addClass 'ac_loading'
-      stackScraper.getQuestion(questionId).then (question) =>
+    $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download an HTML copy of this post">HTML</a>').click ->
+      $(this).addClass('ac_loading')
+      stackScraper.getQuestion(questionId).then (question) ->
         bb = new BlobBuilder
         bb.append renderQuestion(question)
-        $(@).removeClass 'ac_loading'
+        $(@).removeClass('ac_loading')
         window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.html"
     
       false
@@ -90,9 +93,6 @@ body = (manifest) ->
           , interval
       
         resultP
-      throttled.throttle = throttle
-      throttled.wrapped = f
-      throttled
 
   makeDocument = (html, title = '') ->
     doc = document.implementation.createHTMLDocument(title)
@@ -102,7 +102,6 @@ body = (manifest) ->
   class StackScraper
     constructor: ->
       @questions = {}
-      @throttles = {}
       
     getQuestion: (questionid) ->
       if questionid of @questions
@@ -170,7 +169,7 @@ body = (manifest) ->
           if key is 'asked'
             question.creation_date_z = $('.label-key', row).last().attr('title')
           if key is 'viewed'
-            question.view_count = +$('.label-key', row).last().text()?.split(' ')[0].replace(/,/g, '')
+            question.view_count = +$('.label-key', row).last().text()?.split(' ')[0]
       
         for page$ in pages
           for answer in page$.find('.answer')
@@ -236,7 +235,7 @@ body = (manifest) ->
           pageCount = +lastPageNav$.text()
         
           $.when(firstPage$, (if pageCount > 1 then (for pageNumber in [2..pageCount]
-            @ajax("/questions/#{questionid}?page=#{pageNumber}&noredirect=1&answertab=votes").pipe (source) ->
+            @ajax("/questions/#{questionid}?page=#{pageNumber}&noredirect=1").pipe (source) ->
               $(makeDocument(source))
           ) else [])...).pipe (pages...) -> pages
         else
@@ -253,7 +252,7 @@ body = (manifest) ->
       @ajax("/posts/#{postid}/comments").pipe (commentsSource) =>
         commentPage$ = $(makeDocument("<body><table>#{commentsSource}</table></body>"))
         postComments = []
-        $('.comment', commentPage$).each ->
+        $('.comment').each ->
           postComments.push
             comment_id: $(@).attr('id').split('-')[2]
             score: +($.trim($('.comment-score', @).text()) ? 0)
@@ -263,23 +262,18 @@ body = (manifest) ->
         postComments
     
     getPostVoteCount: (postid) ->
-      @throttledAjax('get-vote-count', 1400, "/posts/#{postid}/vote-counts", dataType: 'json').pipe (voteCounts) =>
+      @ajax("/posts/#{postid}/vote-counts", dataType: 'json').pipe (voteCounts) =>
         (up: +voteCounts.up, down: +voteCounts.down)
   
     # be nice: wrap $.ajax to add our throttle and header.
-    ajax: (url, options = {}) ->
-      @throttledAjax 'default', 400, url, options
-    
-    throttledAjax: (throttleName, throttleDelay, url, options = {}) ->
-      throttle = @throttles[throttleName] ?=  makeThrottle(throttleDelay)((f) -> f())
-      throttle ->
-        existingBeforeSend = options.beforeSend;
-        options.cache ?= true
-        options.beforeSend = (request) ->
-          request.setRequestHeader 'X-StackScraper-Version', manifest.version
-          return existingBeforeSend?.apply this, arguments
-        $.ajax(url, options)
-    
+    ajax: (makeThrottle 1000) (url, options = {}) ->
+      existingBeforeSend = options.beforeSend;
+      options.cache ?= true
+      options.beforeSend = (request) ->
+        request.setRequestHeader 'X-StackScraper-Version', manifest.version
+        return existingBeforeSend?.apply this, arguments
+      $.ajax(url, options)
+  
   encodeHTMLText = (text) ->
     String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;')
   
@@ -287,7 +281,6 @@ body = (manifest) ->
     """<!doctype html><html>
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="StackScraper #{manifest.version}" /> 
   <title>
     #{encodeHTMLText question.title}
   </title>
@@ -328,6 +321,7 @@ body = (manifest) ->
       font-size: 1.2em;
     }
       
+      
     h2.answers {
       border-bottom: 1px solid black;
     }
@@ -347,13 +341,12 @@ body = (manifest) ->
       margin: 0.5em 0;
       text-align: center;
     }
-    
       
       .source-header a, .source-header a:visited {
         color: black;
       }
       
-    .post .metrics {
+    .post .score {
       float: left;
       text-align: center;
       width: 58px;
@@ -368,19 +361,19 @@ body = (manifest) ->
         margin-top: 1em;
     }
       
-      .post .metrics .value {
+      .post .score .value {
         display: block;
         font-weight: bold;
         font-size: 1.3em;
         margin: 3px 0 0;
       }
         
-      .post .metrics .unit {
+      .post .score .unit {
         display: block;
         opacity: 0.5;
       }
         
-      .post .metrics .annotation {
+      .post .score .annotation {
         display: block;
         font-weight: bold;
         font-size: 0.8em;
@@ -450,10 +443,7 @@ body = (manifest) ->
     }
     
     blockquote {
-      margin: .5em .25em;
-      margin-bottom: .75em;
-      padding: 1em;
-      padding-bottom: 0.5em;
+      padding: .5em;
       background: #EEE;
     }
       
@@ -479,25 +469,6 @@ body = (manifest) ->
     .footer a:hover {
       text-decoration: underline;
     }
-    
-    .comments {
-      display: none;
-    }
-    
-    .comments:target {
-      display: block;
-    }
-    
-    
-    .comments .comment {
-      padding: .125em;
-      border: .125em solid #EEE;
-      background: #F8F8F8;
-    }
-    
-    .comments .comment .score, .comments .comment .author {
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -505,15 +476,12 @@ body = (manifest) ->
     <div class="question post" id="#{encodeHTMLText question.post_id}">
       <h1>#{encodeHTMLText question.title}</h1>
       
-      <div class="metrics">
+      <div class="score">
         <span class="value">#{question.score}</span>
         <span class="unit">votes</span>
         <br>
         <span class="value">#{question.view_count}</span>
         <span class="unit">views</span>
-          #{if question.comments.length
-            "<br><a href=\"javascript:void(location.hash = '#{question.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{question.comments.length}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
-          else ''}
       </div>
       <div class="col">
         <div class="body">
@@ -543,21 +511,9 @@ body = (manifest) ->
       
       <div style="clear: both;"></div>
       
-      """ + (if question.comments.length then """
-        <div class="comments" id="#{question.post_id}-comments">
-          #{(for comment in question.comments
-            "<div class=\"comment\">" +
-              "<span class=\"score\">[#{comment.score}]</span> " +
-              "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</span> " +
-              "<span class=\"body\">#{comment.body}</span>" +
-            "</div>"
-          ).join('\n')}
-        </div>
-      """ else '') + """
         <div class="source-header">
           This was <a href="/q/#{question.post_id}">originally posted</a> on Stack Exchange#{if question.deleted then ', but it has been deleted' else ''}.
         </div>
-        
       </div>
     </div>  
     
@@ -570,12 +526,9 @@ body = (manifest) ->
     """ + (for answer in question.answers
       """
       <div class="answer post" id="#{encodeHTMLText answer.post_id}">
-        <div class="metrics">
+        <div class="score">
           <span class="value">#{answer.score}</span>
           <span class="unit">votes</span>
-          #{if answer.comments.length
-            "<br><a href=\"javascript:void(location.hash = '#{answer.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{answer.comments.length}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
-          else ''}
         </div>
         <div class="col">
           <div class="body">
@@ -598,36 +551,14 @@ body = (manifest) ->
              #{encodeHTMLText answer.last_edit_date_s}
         </div>
         """ else '') +
-        
-        """
+        """</div>
       <div style="clear: both;"></div>
-      
-      """ + (if answer.comments.length then """
-        <div class="comments" id="#{answer.post_id}-comments">
-          #{(for comment in answer.comments
-            "<div class=\"comment\">" +
-              "<span class=\"score\">[#{comment.score}]</span> " +
-              "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</span> " +
-              "<span class=\"body\">#{comment.body}</span>" +
-            "</div>"
-          ).join('\n')}
-        </div>
-      """ else '') + """
-
-      </div></div>
-      <div style="clear: both;"></div>
+      </div>
       """
     ).join('\n') + """</div>
     <div class="footer">
       <a href="/">exported using <a href="#{encodeHTMLText manifest.homepage_url}">StackScraper</a></a>
     </div>
-<script>
-var QUESTION =
-// BEGIN QUESTION JSON
-#{JSON.stringify question}
-// END QUESTION JSON
-;
-</script>
   </body>
 </html>"""
   
@@ -636,8 +567,17 @@ var QUESTION =
 if exports?
   exports.manifest = manifest
   exports.body = body
-else if document? and location?
+
+if unsafeWindow? and window?
   if location.pathname.match /\/questions\/\d+/
     e = document.createElement 'script'
-    e.textContent = "(#{body})(#{JSON.stringify manifest});"
-    document.body.appendChild e
+    e.textContent = "window.stackScraper_init = function(GM_xmlhttpRequest) { window.GM_xmlhttpRequest = GM_xmlhttpRequest; (#{body})(#{JSON.stringify manifest}); };"
+    window.document.body.appendChild e
+    // fetch external images
+    setTimeout ->
+      window.postMessage 
+      window.addEventListener ''
+      console.log unsafeWindow
+      unsafeWindow.stackScraper_init GM_xmlhttpRequest
+    , 0 # to allow DOM changes to apply for script to be inserted and executed
+  
