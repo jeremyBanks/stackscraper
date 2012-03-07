@@ -1,6 +1,6 @@
 <!DOCTYPE html>  <html> <head>   <title>stackscraper.user.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               stackscraper.user.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="o">`</span><span class="err">// ==UserScript==</span>
 <span class="o">/</span><span class="err">/ @name           StackScraper</span>
-<span class="o">/</span><span class="err">/ @version        0.2.9</span>
+<span class="o">/</span><span class="err">/ @version        0.3.0</span>
 <span class="o">/</span><span class="sr">/ @namespace      http:/</span><span class="o">/</span><span class="nx">extensions</span><span class="p">.</span><span class="nx">github</span><span class="p">.</span><span class="nx">com</span><span class="sr">/stackscraper/</span>
 <span class="o">/</span><span class="err">/ @description    Adds download options to Stack Exchange questions.</span>
 <span class="o">/</span><span class="sr">/ @include        *:/</span><span class="o">/*</span><span class="p">.</span><span class="nx">stackexchange</span><span class="p">.</span><span class="nx">com</span><span class="sr">/questions/</span><span class="o">*</span>
@@ -21,7 +21,7 @@
 
 <span class="nv">manifest = </span>
   <span class="nv">name: </span><span class="s1">&#39;StackScraper&#39;</span>
-  <span class="nv">version: </span><span class="s1">&#39;0.2.9&#39;</span>
+  <span class="nv">version: </span><span class="s1">&#39;0.3.0&#39;</span>
   <span class="nv">description: </span><span class="s1">&#39;Adds download options to Stack Exchange questions.&#39;</span>
   <span class="nv">homepage_url: </span><span class="s1">&#39;http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html&#39;</span>
   <span class="nv">permissions: </span><span class="p">[</span>
@@ -59,7 +59,7 @@
       <span class="nx">$</span><span class="p">(</span><span class="k">this</span><span class="p">).</span><span class="nx">addClass</span> <span class="s1">&#39;ac_loading&#39;</span>
       <span class="nx">stackScraper</span><span class="p">.</span><span class="nx">getQuestion</span><span class="p">(</span><span class="nx">questionId</span><span class="p">).</span><span class="k">then</span> <span class="p">(</span><span class="nx">question</span><span class="p">)</span> <span class="o">=&gt;</span>
         <span class="nv">bb = </span><span class="k">new</span> <span class="nx">BlobBuilder</span>
-        <span class="nx">bb</span><span class="p">.</span><span class="nx">append</span> <span class="nx">renderQuestion</span><span class="p">(</span><span class="nx">question</span><span class="p">)</span>
+        <span class="nx">bb</span><span class="p">.</span><span class="nx">append</span> <span class="nx">stackScraper</span><span class="p">.</span><span class="nx">renderQuestionPage</span><span class="p">(</span><span class="nx">question</span><span class="p">)</span>
         <span class="nx">$</span><span class="p">(</span><span class="err">@</span><span class="p">).</span><span class="nx">removeClass</span> <span class="s1">&#39;ac_loading&#39;</span>
         <span class="nb">window</span><span class="p">.</span><span class="nv">location = </span><span class="nx">URL</span><span class="p">.</span><span class="nx">createObjectURL</span><span class="p">(</span><span class="nx">bb</span><span class="p">.</span><span class="nx">getBlob</span><span class="p">())</span> <span class="o">+</span> <span class="s2">&quot;#question-#{questionId}.html&quot;</span>
     
@@ -273,357 +273,330 @@ deferred results and the wrapped function won't be called more often than once e
           <span class="nx">request</span><span class="p">.</span><span class="nx">setRequestHeader</span> <span class="s1">&#39;X-StackScraper-Version&#39;</span><span class="p">,</span> <span class="nx">manifest</span><span class="p">.</span><span class="nx">version</span>
           <span class="k">return</span> <span class="nx">existingBeforeSend</span><span class="o">?</span><span class="p">.</span><span class="nx">apply</span> <span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span>
         <span class="nx">$</span><span class="p">.</span><span class="nx">ajax</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
-    
-  <span class="nv">encodeHTMLText = </span><span class="nf">(text) -&gt;</span>
-    <span class="nb">String</span><span class="p">(</span><span class="nx">text</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&amp;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;amp;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&lt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;lt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&gt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&gt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&quot;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;quot;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&quot;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;#39;&#39;</span><span class="p">)</span>
+ 
+    <span class="nv">encodeHTMLText: </span><span class="nf">(text) -&gt;</span>
+      <span class="nb">String</span><span class="p">(</span><span class="nx">text</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&amp;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;amp;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&lt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;lt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&gt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&gt;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&quot;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;quot;&#39;</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&quot;/g</span><span class="p">,</span> <span class="s1">&#39;&amp;#39;&#39;</span><span class="p">)</span>
   
-  <span class="nv">renderQuestion = </span><span class="p">(</span><span class="nx">question</span><span class="p">,</span> <span class="nv">base = </span><span class="p">(</span><span class="s1">&#39;http://&#39;</span> <span class="o">+</span> <span class="nb">window</span><span class="o">?</span><span class="p">.</span><span class="nx">location</span><span class="o">?</span><span class="p">.</span><span class="nx">host</span><span class="p">))</span> <span class="o">-&gt;</span>
-    <span class="s2">&quot;&quot;&quot;&lt;!doctype html&gt;&lt;html&gt;</span>
-<span class="s2">&lt;head&gt;</span>
-<span class="s2">  &lt;meta charset=&quot;</span><span class="nx">utf</span><span class="o">-</span><span class="mi">8</span><span class="s2">&quot; /&gt;</span>
-<span class="s2">  &lt;meta name=&quot;</span><span class="nx">generator</span><span class="s2">&quot; content=&quot;</span><span class="nx">StackScraper</span> <span class="c1">#{manifest.version}&quot; /&gt; </span>
-  <span class="o">&lt;</span><span class="nx">title</span><span class="o">&gt;</span>
-    <span class="c1">#{encodeHTMLText question.title}</span>
-  <span class="o">&lt;</span><span class="err">/title&gt;</span>
-  <span class="c1">#{if base then &quot;&lt;base href=\&quot;#{base}\&quot; /&gt;&quot; else &#39;&#39;}</span>
-  <span class="o">&lt;</span><span class="nx">style</span><span class="o">&gt;</span>
-    <span class="nx">html</span> <span class="p">{</span>
-      <span class="nv">background: </span><span class="c1">#D8D8D8;</span>
-    <span class="p">}</span>
-    
-    <span class="nx">body</span> <span class="p">{</span>
-      <span class="nv">font: </span><span class="mi">14</span><span class="nx">px</span> <span class="nx">sans</span><span class="o">-</span><span class="nx">serif</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="nx">a</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span><span class="nx">visited</span> <span class="p">{</span>
-      <span class="nv">color: </span><span class="c1">#226;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">wrapper</span> <span class="p">{</span>
-      <span class="nv">width: </span><span class="mi">735</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nv">margin: </span><span class="mi">1</span><span class="nx">em</span> <span class="nx">auto</span><span class="p">;</span>
-      <span class="nv">background: </span><span class="nx">white</span><span class="p">;</span>
-      <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="nx">h1</span><span class="p">,</span><span class="nx">h2</span><span class="p">,</span> <span class="nx">h3</span><span class="p">,</span> <span class="nx">h4</span> <span class="p">{</span>
-      <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="p">.</span><span class="mi">2</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="nx">black</span><span class="p">;</span>
-      <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">0</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="nx">h1</span> <span class="p">{</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.6</span><span class="nx">em</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="nx">h2</span> <span class="p">{</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.4</span><span class="nx">em</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="nx">h3</span> <span class="p">{</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.2</span><span class="nx">em</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="nx">h2</span><span class="p">.</span><span class="nx">answers</span> <span class="p">{</span>
-      <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="nx">black</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">implied</span><span class="o">-</span><span class="k">by</span><span class="o">-</span><span class="nx">style</span> <span class="p">{</span>
-      <span class="nv">display: </span><span class="nx">none</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="p">{</span>
-      <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
-      <span class="nx">background</span><span class="o">-</span><span class="nv">color: </span><span class="c1">#EEE;</span>
-      <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span> <span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
-      <span class="nv">color: </span><span class="nx">black</span><span class="p">;</span>
-      <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">left</span><span class="p">;</span>
-      <span class="nv">margin: </span><span class="mf">0.5</span><span class="nx">em</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-      
-      <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="nx">a</span><span class="p">,</span> <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="nx">a</span><span class="o">:</span><span class="nx">visited</span> <span class="p">{</span>
-        <span class="nv">color: </span><span class="nx">black</span><span class="p">;</span>
-      <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">{</span>
-      <span class="nv">float: </span><span class="nx">left</span><span class="p">;</span>
-      <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
-      <span class="nv">width: </span><span class="mi">58</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nv">margin: </span><span class="mi">0</span><span class="nx">px</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="nv">padding: </span><span class="mi">5</span><span class="nx">px</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="nx">border</span><span class="o">-</span><span class="nv">right: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#DDD;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">post</span> <span class="o">+</span> <span class="p">.</span><span class="nx">post</span> <span class="p">{</span>
-        <span class="nx">border</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#888;</span>
-        <span class="nx">padding</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
-        <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">.</span><span class="nx">value</span> <span class="p">{</span>
-        <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
-        <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
-        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
-        <span class="nv">margin: </span><span class="mi">3</span><span class="nx">px</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="p">}</span>
-        
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">.</span><span class="nx">unit</span> <span class="p">{</span>
-        <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
-        <span class="nv">opacity: </span><span class="mf">0.5</span><span class="p">;</span>
-      <span class="p">}</span>
-        
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">.</span><span class="nx">annotation</span> <span class="p">{</span>
-        <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
-        <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
-        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">0.8</span><span class="nx">em</span><span class="p">;</span>
-        <span class="nv">opacity: </span><span class="mf">0.75</span><span class="p">;</span>
-        <span class="nv">margin: </span><span class="mi">5</span><span class="nx">px</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">;</span>
-      <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">tags</span> <span class="p">{</span>
-      <span class="nx">list</span><span class="o">-</span><span class="nx">style</span><span class="o">-</span><span class="nv">type: </span><span class="nx">none</span><span class="p">;</span>
-      <span class="nv">padding: </span><span class="mi">0</span><span class="p">;</span>
-      <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.75</span><span class="nx">em</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">tags</span> <span class="nx">li</span> <span class="p">{</span>
-        <span class="nv">display: </span><span class="nx">inline</span><span class="p">;</span>
-        <span class="nv">padding: </span><span class="p">.</span><span class="mi">3</span><span class="nx">em</span> <span class="p">.</span><span class="mi">5</span><span class="nx">em</span><span class="p">;</span>
-        <span class="nv">margin: </span><span class="p">.</span><span class="mi">2</span><span class="nx">em</span><span class="p">;</span>
-        <span class="nv">border: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#888;</span>
-        <span class="nv">background: </span><span class="c1">#F8F8F4;</span>
-        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="p">.</span><span class="mi">75</span><span class="nx">em</span><span class="p">;</span>
-      <span class="p">}</span>
-        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">tags</span> <span class="nx">li</span> <span class="nx">a</span> <span class="p">{</span>
-          <span class="nv">color: </span><span class="nx">inherit</span><span class="p">;</span>
-          <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">inherit</span><span class="p">;</span>
-        <span class="p">}</span>
-        
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">body</span> <span class="p">{</span>
-        <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
-      <span class="p">}</span>
-      
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">body</span> <span class="nx">p</span><span class="p">,</span> <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">body</span> <span class="nx">pre</span> <span class="p">{</span>
-        <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">0</span><span class="p">;</span>
-      <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">attribution</span> <span class="p">{</span>  
-      <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mi">11</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nv">height: </span><span class="mi">4</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nv">float: </span><span class="nx">right</span><span class="p">;</span>
-      <span class="nv">width: </span><span class="mi">160</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nv">border: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#E8E8E4;</span>
-      <span class="nx">margin</span><span class="o">-</span><span class="nv">left: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nv">padding: </span><span class="mi">4</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">8</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nv">background: </span><span class="c1">#F8F8F4;</span>
-      <span class="nv">position: </span><span class="nx">relative</span><span class="p">;</span>
-      <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.6</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">margin</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">8</span><span class="nx">px</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">attribution</span> <span class="nx">img</span> <span class="p">{</span>
-        <span class="nv">border: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#E8E8E4;</span>
-        <span class="nx">border</span><span class="o">-</span><span class="nv">right: </span><span class="mi">0</span><span class="p">;</span>
-        <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">0</span><span class="p">;</span>
-        <span class="nv">float: </span><span class="nx">right</span><span class="p">;</span>
-        <span class="nv">position: </span><span class="nx">absolute</span><span class="p">;</span>
-        <span class="nv">bottom: </span><span class="mi">0</span><span class="nx">px</span><span class="p">;</span>
-        <span class="nv">right: </span><span class="mi">0</span><span class="nx">px</span><span class="p">;</span>
-      <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">col</span> <span class="p">{</span>
-      <span class="nv">float: </span><span class="nx">right</span><span class="p">;</span>
-      <span class="nv">width: </span><span class="mi">665</span><span class="nx">px</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">col</span> <span class="nx">img</span> <span class="p">{</span>
-      <span class="nx">max</span><span class="o">-</span><span class="nv">width: </span><span class="mi">665</span><span class="nx">px</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    <span class="nx">blockquote</span> <span class="p">{</span>
-      <span class="nv">margin: </span><span class="p">.</span><span class="mi">5</span><span class="nx">em</span> <span class="p">.</span><span class="mi">25</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">margin</span><span class="o">-</span><span class="nv">bottom: </span><span class="p">.</span><span class="mi">75</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="mf">0.5</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nv">background: </span><span class="c1">#EEE;</span>
-    <span class="p">}</span>
-      
-    <span class="nx">pre</span> <span class="p">{</span>
-      <span class="nv">background: </span><span class="c1">#EEE;</span>
-      <span class="nv">padding: </span><span class="mi">8</span><span class="nx">px</span> <span class="mi">8</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nx">margin</span><span class="o">-</span><span class="nx">bottom</span><span class="p">;</span> <span class="mi">10</span><span class="nx">px</span><span class="p">;</span>
-      <span class="nv">font: </span><span class="mi">100</span><span class="o">%</span> <span class="nx">Menlo</span><span class="p">,</span> <span class="nx">Monaco</span><span class="p">,</span> <span class="nx">Consolas</span><span class="p">,</span> <span class="s2">&quot;Lucida Console&quot;</span><span class="p">,</span> <span class="nx">monospace</span><span class="p">;</span>
-      <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">overflow</span><span class="o">-</span><span class="nv">x: </span><span class="nx">scroll</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">footer</span> <span class="p">{</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">0.8</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">footer</span> <span class="nx">a</span> <span class="p">{</span>
-      <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">none</span><span class="p">;</span>
-      <span class="nv">color: </span><span class="c1">#222;</span>
-    <span class="p">}</span>
-      
-    <span class="p">.</span><span class="nx">footer</span> <span class="nx">a</span><span class="o">:</span><span class="nx">hover</span> <span class="p">{</span>
-      <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">underline</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    <span class="p">.</span><span class="nx">comments</span> <span class="p">{</span>
-      <span class="nv">display: </span><span class="nx">none</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    <span class="p">.</span><span class="nx">comments</span><span class="o">:</span><span class="nx">target</span> <span class="p">{</span>
-      <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
-    <span class="p">}</span>
-    
-    
-    <span class="p">.</span><span class="nx">comments</span> <span class="p">.</span><span class="nx">comment</span> <span class="p">{</span>
-      <span class="nv">padding: </span><span class="p">.</span><span class="mi">125</span><span class="nx">em</span><span class="p">;</span>
-      <span class="nv">border: </span><span class="p">.</span><span class="mi">125</span><span class="nx">em</span> <span class="nx">solid</span> <span class="c1">#EEE;</span>
-      <span class="nv">background: </span><span class="c1">#F8F8F8;</span>
-    <span class="p">}</span>
-    
-    <span class="p">.</span><span class="nx">comments</span> <span class="p">.</span><span class="nx">comment</span> <span class="p">.</span><span class="nx">score</span><span class="p">,</span> <span class="p">.</span><span class="nx">comments</span> <span class="p">.</span><span class="nx">comment</span> <span class="p">.</span><span class="nx">author</span> <span class="p">{</span>
-      <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="o">&lt;</span><span class="err">/style&gt;</span>
-<span class="o">&lt;</span><span class="err">/head&gt;</span>
-<span class="o">&lt;</span><span class="nx">body</span><span class="o">&gt;</span>
-  <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;wrapper&quot;</span><span class="o">&gt;</span>
-    <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;question post&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{encodeHTMLText question.post_id}&quot;</span><span class="o">&gt;</span>
-      <span class="o">&lt;</span><span class="nx">h1</span><span class="o">&gt;</span><span class="c1">#{encodeHTMLText question.title}&lt;/h1&gt;</span>
-      
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;metrics&quot;</span><span class="o">&gt;</span>
-        <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="o">&gt;</span><span class="c1">#{question.score}&lt;/span&gt;</span>
-        <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;unit&quot;</span><span class="o">&gt;</span><span class="nx">votes</span><span class="o">&lt;</span><span class="err">/span&gt;</span>
-        <span class="o">&lt;</span><span class="nx">br</span><span class="o">&gt;</span>
-        <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="o">&gt;</span><span class="c1">#{question.view_count}&lt;/span&gt;</span>
-        <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;unit&quot;</span><span class="o">&gt;</span><span class="nx">views</span><span class="o">&lt;</span><span class="err">/span&gt;</span>
-          <span class="c1">#{if question.comments.length</span>
-            <span class="s2">&quot;&lt;br&gt;&lt;a href=\&quot;javascript:void(location.hash = &#39;#{question.post_id}-comments&#39;)\&quot; style=\&quot;text-decoration: none;\&quot;&gt;&lt;span class=\&quot;value\&quot;&gt;#{question.comments.length}&lt;/span&gt;&lt;span class=\&quot;unit\&quot; style=\&quot;font-size: 75%;\&quot;&gt;comments&lt;/span&gt;&lt;/a&gt;&quot;</span>
-          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
-      <span class="o">&lt;</span><span class="err">/div&gt;</span>
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;col&quot;</span><span class="o">&gt;</span>
-        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="o">&gt;</span>
-          <span class="c1">#{question.body}</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        <span class="s2">&quot;&quot;&quot; + (if question.owner or question.creation_date_s then &quot;&quot;&quot;</span>
-          <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;attribution&quot;</span><span class="o">&gt;</span>
-            <span class="nx">asked</span> <span class="c1">#{if question.owner</span>
-              <span class="s2">&quot;by &lt;a href=\&quot;/u/#{encodeHTMLText question.owner.user_id}\&quot;&gt;#{encodeHTMLText question.owner.display_name}&lt;img src=\&quot;#{encodeHTMLText question.owner.profile_image}\&quot; alt=\&quot;\&quot; /&gt;&lt;/a&gt;&lt;br&gt;&quot;</span>
-            <span class="k">else</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">}</span>
-            <span class="c1">#{question.creation_date_s}</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + </span>
-<span class="s2">        (if question.last_edit_date_s or question.last_editor then &quot;&quot;&quot;</span>
-          <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;attribution&quot;</span><span class="o">&gt;</span>
-            <span class="nx">edited</span> <span class="c1">#{if question.last_editor</span>
-              <span class="s2">&quot;by &lt;a href=\&quot;/u/#{encodeHTMLText question.last_editor.user_id}\&quot;&gt;#{encodeHTMLText question.last_editor.display_name}&lt;img src=\&quot;#{encodeHTMLText question.last_editor.profile_image}\&quot; alt=\&quot;\&quot; /&gt;&lt;/a&gt;&lt;br&gt;&quot;</span>
-            <span class="k">else</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">}</span>
-            <span class="c1">#{encodeHTMLText question.last_edit_date_s}</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + &quot;&quot;&quot;</span>
-        <span class="o">&lt;</span><span class="nx">ul</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;tags&quot;</span><span class="o">&gt;</span>
-          <span class="c1">#{(for tag in question.tags</span>
-            <span class="s2">&quot;&lt;li&gt;&lt;a href=\&quot;/tags/#{encodeHTMLText tag}\&quot;&gt;#{encodeHTMLText tag}&lt;/a&gt;&lt;/li&gt;&quot;</span>
-          <span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)}</span>
-        <span class="o">&lt;</span><span class="err">/ul&gt;</span>
-      
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="s2">&quot;clear: both;&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
-      
-      <span class="s2">&quot;&quot;&quot; + (if question.comments.length then &quot;&quot;&quot;</span>
-        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;comments&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{question.post_id}-comments&quot;</span><span class="o">&gt;</span>
-          <span class="c1">#{(for comment in question.comments</span>
-            <span class="s2">&quot;&lt;div class=\&quot;comment\&quot;&gt;&quot;</span> <span class="o">+</span>
-              <span class="s2">&quot;&lt;span class=\&quot;score\&quot;&gt;[#{comment.score}]&lt;/span&gt; &quot;</span> <span class="o">+</span>
-              <span class="s2">&quot;&lt;span class=\&quot;author\&quot;&gt;&lt;a href=\&quot;/u/#{comment.user_id}\&quot;&gt;#{encodeHTMLText comment.display_name}&lt;/a&gt;:&lt;/span&gt; &quot;</span> <span class="o">+</span>
-              <span class="s2">&quot;&lt;span class=\&quot;body\&quot;&gt;#{comment.body}&lt;/span&gt;&quot;</span> <span class="o">+</span>
-            <span class="s2">&quot;&lt;/div&gt;&quot;</span>
-          <span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)}</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-      <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + &quot;&quot;&quot;</span>
-        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;source-header&quot;</span><span class="o">&gt;</span>
-          <span class="nx">This</span> <span class="nx">was</span> <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;/q/#{question.post_id}&quot;</span><span class="o">&gt;</span><span class="nx">originally</span> <span class="nx">posted</span><span class="o">&lt;</span><span class="err">/a&gt; on Stack Exchange#{if question.deleted then &#39;, but it has been deleted&#39; else &#39;&#39;}.</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        
-      <span class="o">&lt;</span><span class="err">/div&gt;</span>
-    <span class="o">&lt;</span><span class="err">/div&gt;  </span>
-    
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="s2">&quot;clear: both;&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
-	  
-    <span class="o">&lt;</span><span class="nx">h2</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;answers&quot;</span><span class="o">&gt;</span>
-      <span class="c1">#{encodeHTMLText question.answers.length} Answers</span>
-    <span class="o">&lt;</span><span class="err">/h2&gt;</span>
-    
-    <span class="s2">&quot;&quot;&quot; + (for answer in question.answers</span>
-<span class="s2">      &quot;&quot;&quot;</span>
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;answer post&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{encodeHTMLText answer.post_id}&quot;</span><span class="o">&gt;</span>
+    <span class="nv">renderPost: </span><span class="nf">(post) -&gt;</span>
+      <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      &lt;div class=&quot;</span><span class="c1">#{@encodeHTMLText(post.post_type)} post&quot; id=&quot;#{@encodeHTMLText(post.post_id)}&quot;&gt;</span>
+        <span class="c1">#{if post.title?</span>
+          <span class="s2">&quot;&lt;h1&gt;#{@encodeHTMLText(post.title)}&lt;/h1&gt;&quot;</span>
+        <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
         <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;metrics&quot;</span><span class="o">&gt;</span>
-          <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="o">&gt;</span><span class="c1">#{answer.score}&lt;/span&gt;</span>
-          <span class="o">&lt;</span><span class="nx">span</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;unit&quot;</span><span class="o">&gt;</span><span class="nx">votes</span><span class="o">&lt;</span><span class="err">/span&gt;</span>
-          <span class="c1">#{if answer.comments.length</span>
-            <span class="s2">&quot;&lt;br&gt;&lt;a href=\&quot;javascript:void(location.hash = &#39;#{answer.post_id}-comments&#39;)\&quot; style=\&quot;text-decoration: none;\&quot;&gt;&lt;span class=\&quot;value\&quot;&gt;#{answer.comments.length}&lt;/span&gt;&lt;span class=\&quot;unit\&quot; style=\&quot;font-size: 75%;\&quot;&gt;comments&lt;/span&gt;&lt;/a&gt;&quot;</span>
+          <span class="c1">#{if post.score?</span>
+            <span class="s2">&quot;&lt;span class=\&quot;value\&quot;&gt;#{@encodeHTMLText(post.score)}&lt;/span&gt;&quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;&lt;span class=\&quot;unit\&quot;&gt;votes&lt;/span&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+          <span class="c1">#{if post.view_count?</span>
+            <span class="s2">&quot;&lt;br&gt;&quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;&lt;span class=\&quot;value\&quot;&gt;#{@encodeHTMLText(post.view_count)}&lt;/span&gt;&quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;&lt;span class=\&quot;unit\&quot;&gt;views&lt;/span&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+          <span class="c1">#{if post.comments?.length</span>
+            <span class="s2">&quot;&lt;br&gt;&lt;a href=\&quot;javascript:void(location.hash = &#39;#{@encodeHTMLText(post.post_id)}-comments&#39;)\&quot; style=\&quot;text-decoration: none;\&quot;&gt;&lt;span class=\&quot;value\&quot;&gt;#{@encodeHTMLText(post.comments.length)}&lt;/span&gt;&lt;span class=\&quot;unit\&quot; style=\&quot;font-size: 75%;\&quot;&gt;comments&lt;/span&gt;&lt;/a&gt;&quot;</span>
           <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
         <span class="o">&lt;</span><span class="err">/div&gt;</span>
         <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;col&quot;</span><span class="o">&gt;</span>
           <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;body&quot;</span><span class="o">&gt;</span>
-            <span class="c1">#{answer.body}</span>
+            <span class="c1">#{post.body}</span>
           <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        <span class="s2">&quot;&quot;&quot; +</span>
-<span class="s2">        (if answer.owner or answer.creation_date_s then &quot;&quot;&quot;</span>
-          <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;attribution&quot;</span><span class="o">&gt;</span>
-            <span class="nx">answered</span> <span class="c1">#{if answer.owner</span>
-              <span class="s2">&quot;by &lt;a href=\&quot;/u/#{encodeHTMLText answer.owner.user_id}\&quot;&gt;#{encodeHTMLText answer.owner.display_name}&lt;img src=\&quot;#{encodeHTMLText answer.owner.profile_image}\&quot; alt=\&quot;\&quot; /&gt;&lt;/a&gt;&lt;br&gt;&quot;</span>
-            <span class="k">else</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">}</span>
-             <span class="c1">#{answer.creation_date_s}</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + </span>
-<span class="s2">        (if answer.last_edit_date_s or answer.last_editor then &quot;&quot;&quot;</span>
-          <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;attribution&quot;</span><span class="o">&gt;</span>
-            <span class="nx">edited</span> <span class="c1">#{if answer.last_editor</span>
-              <span class="s2">&quot;by &lt;a href=\&quot;/u/#{encodeHTMLText answer.last_editor.user_id}\&quot;&gt;#{encodeHTMLText answer.last_editor.display_name}&lt;img src=\&quot;#{encodeHTMLText answer.last_editor.profile_image}\&quot; alt=\&quot;\&quot; /&gt;&lt;/a&gt;&lt;br&gt;&quot;</span>
-            <span class="k">else</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">}</span>
-             <span class="c1">#{encodeHTMLText answer.last_edit_date_s}</span>
-        <span class="o">&lt;</span><span class="err">/div&gt;</span>
-        <span class="s2">&quot;&quot;&quot; else &#39;&#39;) +</span>
-<span class="s2">        </span>
-<span class="s2">        &quot;&quot;&quot;</span>
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="s2">&quot;clear: both;&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
+        
+          <span class="c1">#{@renderAttributionBox(post.creation_date_s, post.owner, &#39;asked&#39;)}</span>
+        
+          <span class="c1">#{@renderAttributionBox(post.last_edit_date_s, post.last_editor, &#39;edited&#39;)}</span>
+        
+          <span class="c1">#{if post.tags?</span>
+            <span class="s2">&quot;&lt;ul class=\&quot;tags\&quot;&gt;&quot;</span> <span class="o">+</span>
+              <span class="p">(</span><span class="s2">&quot;&lt;li&gt;&lt;a href=\&quot;/tags/#{@encodeHTMLText tag}\&quot;&gt;#{@encodeHTMLText tag}&lt;/a&gt;&lt;/li&gt;&quot;</span> <span class="k">for</span> <span class="nx">tag</span> <span class="k">in</span> <span class="nx">post</span><span class="p">.</span><span class="nx">tags</span>
+              <span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)</span> <span class="o">+</span>
+            <span class="s2">&quot;&lt;/ul&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+        
+          <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;clear&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
       
-      <span class="s2">&quot;&quot;&quot; + (if answer.comments.length then &quot;&quot;&quot;</span>
-        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;comments&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{answer.post_id}-comments&quot;</span><span class="o">&gt;</span>
-          <span class="c1">#{(for comment in answer.comments</span>
-            <span class="s2">&quot;&lt;div class=\&quot;comment\&quot;&gt;&quot;</span> <span class="o">+</span>
-              <span class="s2">&quot;&lt;span class=\&quot;score\&quot;&gt;[#{comment.score}]&lt;/span&gt; &quot;</span> <span class="o">+</span>
-              <span class="s2">&quot;&lt;span class=\&quot;author\&quot;&gt;&lt;a href=\&quot;/u/#{comment.user_id}\&quot;&gt;#{encodeHTMLText comment.display_name}&lt;/a&gt;:&lt;/span&gt; &quot;</span> <span class="o">+</span>
-              <span class="s2">&quot;&lt;span class=\&quot;body\&quot;&gt;#{comment.body}&lt;/span&gt;&quot;</span> <span class="o">+</span>
-            <span class="s2">&quot;&lt;/div&gt;&quot;</span>
+          <span class="c1">#{@renderPostComments post}</span>
+      
+          <span class="c1">#{if post.post_type is &#39;question&#39;</span>
+              <span class="s2">&quot;&lt;div class=\&quot;source-header\&quot;&gt;&quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;This was &lt;a href=\&quot;/q/#{post.post_id}\&quot;&gt;originally posted&lt;/a&gt; on Stack Exchange#{if post.deleted then &#39;, but it has been deleted&#39; else &#39;&#39;}.&quot;</span> <span class="o">+</span>
+              <span class="s2">&quot;&lt;/div&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+        <span class="o">&lt;</span><span class="err">/div&gt;</span>
+      <span class="o">&lt;</span><span class="err">/div&gt;  </span>
+    
+      <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;clear&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
+      <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">  </span>
+<span class="s2">    renderAttributionBox: (date_s, shallow_user, verb) -&gt;</span>
+<span class="s2">      if date_s? then &quot;&quot;&quot;</span>
+        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;attribution&quot;</span><span class="o">&gt;</span>
+          <span class="c1">#{verb} #{if shallow_user? and shallow_user.profile_image? and shallow_user.user_id? # TODO: degrade more gracefully.</span>
+            <span class="s2">&quot;by &lt;a href=\&quot;/u/#{@encodeHTMLText(shallow_user.user_id)}\&quot;&gt;#{@encodeHTMLText(shallow_user.display_name)}&lt;img src=\&quot;#{@encodeHTMLText(shallow_user.profile_image)}\&quot; alt=\&quot;\&quot; /&gt;&lt;/a&gt;&lt;br&gt;&quot;</span>
+          <span class="k">else</span> <span class="s1">&#39;&lt;br&gt;&#39;</span><span class="p">}</span>
+          <span class="c1">#{@encodeHTMLText(date_s)}</span>
+        <span class="o">&lt;</span><span class="err">/div&gt;</span>
+      <span class="s2">&quot;&quot;&quot; else &#39;&#39;</span>
+<span class="s2">  </span>
+<span class="s2">    renderPostComments: (post) -&gt;</span>
+<span class="s2">      if post.comments?.length then &quot;&quot;&quot;</span>
+        <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;comments&quot;</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;#{@encodeHTMLText post.post_id}-comments&quot;</span><span class="o">&gt;</span>
+          <span class="c1">#{(for comment in post.comments</span>
+              <span class="s2">&quot;&lt;div class=\&quot;comment\&quot;&gt;&quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;&lt;span class=\&quot;score\&quot;&gt;[#{comment.score}]&lt;/span&gt; &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;&lt;span class=\&quot;author\&quot;&gt;&lt;a href=\&quot;/u/#{comment.user_id}\&quot;&gt;#{@encodeHTMLText comment.display_name}&lt;/a&gt;:&lt;/span&gt; &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;&lt;span class=\&quot;body\&quot;&gt;#{comment.body}&lt;/span&gt;&quot;</span> <span class="o">+</span>
+              <span class="s2">&quot;&lt;/div&gt;&quot;</span>
           <span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">)}</span>
         <span class="o">&lt;</span><span class="err">/div&gt;</span>
-      <span class="s2">&quot;&quot;&quot; else &#39;&#39;) + &quot;&quot;&quot;</span>
+      <span class="s2">&quot;&quot;&quot; else &#39;&#39;</span>
+<span class="s2">  </span>
+<span class="s2">    renderQuestionPage: (question, base = (&#39;http://&#39; + window?.location?.host)) -&gt;</span>
+<span class="s2">      &quot;&quot;&quot;</span><span class="o">&lt;!</span><span class="nx">doctype</span> <span class="nx">html</span><span class="o">&gt;&lt;</span><span class="nx">html</span><span class="o">&gt;</span>
+  <span class="o">&lt;</span><span class="nx">head</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="nx">meta</span> <span class="nx">charset</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span> <span class="o">/&gt;</span>
+    <span class="o">&lt;</span><span class="nx">meta</span> <span class="nx">name</span><span class="o">=</span><span class="s2">&quot;generator&quot;</span> <span class="nx">content</span><span class="o">=</span><span class="s2">&quot;StackScraper #{manifest.version}&quot;</span> <span class="o">/&gt;</span> 
+    <span class="o">&lt;</span><span class="nx">title</span><span class="o">&gt;</span>
+      <span class="c1">#{@encodeHTMLText(question.title)}</span>
+    <span class="o">&lt;</span><span class="err">/title&gt;</span>
+    <span class="c1">#{if base then &quot;&lt;base href=\&quot;#{@encodeHTMLText(base)}\&quot; /&gt;&quot; else &#39;&#39;}</span>
+    <span class="o">&lt;</span><span class="nx">style</span><span class="o">&gt;</span>
+      <span class="nx">html</span> <span class="p">{</span>
+        <span class="nv">background: </span><span class="c1">#D8D8D8;</span>
+      <span class="p">}</span>
+    
+      <span class="nx">body</span> <span class="p">{</span>
+        <span class="nv">font: </span><span class="mi">14</span><span class="nx">px</span> <span class="nx">sans</span><span class="o">-</span><span class="nx">serif</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="nx">a</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span><span class="nx">visited</span> <span class="p">{</span>
+        <span class="nv">color: </span><span class="c1">#226;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">wrapper</span> <span class="p">{</span>
+        <span class="nv">width: </span><span class="mi">735</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nv">margin: </span><span class="mi">1</span><span class="nx">em</span> <span class="nx">auto</span><span class="p">;</span>
+        <span class="nv">background: </span><span class="nx">white</span><span class="p">;</span>
+        <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="nx">h1</span><span class="p">,</span><span class="nx">h2</span><span class="p">,</span> <span class="nx">h3</span><span class="p">,</span> <span class="nx">h4</span> <span class="p">{</span>
+        <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="p">.</span><span class="mi">2</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="nx">black</span><span class="p">;</span>
+        <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="nx">h1</span> <span class="p">{</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.6</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="nx">h2</span> <span class="p">{</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.4</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      <span class="nx">h3</span> <span class="p">{</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.2</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="nx">h2</span><span class="p">.</span><span class="nx">answers</span> <span class="p">{</span>
+        <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="nx">black</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">implied</span><span class="o">-</span><span class="k">by</span><span class="o">-</span><span class="nx">style</span> <span class="p">{</span>
+        <span class="nv">display: </span><span class="nx">none</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="p">{</span>
+        <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
+        <span class="nx">background</span><span class="o">-</span><span class="nv">color: </span><span class="c1">#EEE;</span>
+        <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span> <span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
+        <span class="nv">color: </span><span class="nx">black</span><span class="p">;</span>
+        <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">left</span><span class="p">;</span>
+        <span class="nv">margin: </span><span class="mf">0.5</span><span class="nx">em</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
+      <span class="p">}</span>
+    
+      
+        <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="nx">a</span><span class="p">,</span> <span class="p">.</span><span class="nx">source</span><span class="o">-</span><span class="nx">header</span> <span class="nx">a</span><span class="o">:</span><span class="nx">visited</span> <span class="p">{</span>
+          <span class="nv">color: </span><span class="nx">black</span><span class="p">;</span>
+        <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">{</span>
+        <span class="nv">float: </span><span class="nx">left</span><span class="p">;</span>
+        <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
+        <span class="nv">width: </span><span class="mi">58</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nv">margin: </span><span class="mi">0</span><span class="nx">px</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="nv">padding: </span><span class="mi">5</span><span class="nx">px</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="nx">border</span><span class="o">-</span><span class="nv">right: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#DDD;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">post</span> <span class="o">+</span> <span class="p">.</span><span class="nx">post</span> <span class="p">{</span>
+          <span class="nx">border</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#888;</span>
+          <span class="nx">padding</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+          <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">post</span> <span class="o">+</span> <span class="p">.</span><span class="nx">clear</span> <span class="o">+</span> <span class="p">.</span><span class="nx">post</span> <span class="p">{</span>
+          <span class="nx">border</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#888;</span>
+          <span class="nx">padding</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+          <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">.</span><span class="nx">value</span> <span class="p">{</span>
+          <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
+          <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
+          <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
+          <span class="nv">margin: </span><span class="mi">3</span><span class="nx">px</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">.</span><span class="nx">unit</span> <span class="p">{</span>
+          <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
+          <span class="nv">opacity: </span><span class="mf">0.5</span><span class="p">;</span>
+        <span class="p">}</span>
+        
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">metrics</span> <span class="p">.</span><span class="nx">annotation</span> <span class="p">{</span>
+          <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
+          <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
+          <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">0.8</span><span class="nx">em</span><span class="p">;</span>
+          <span class="nv">opacity: </span><span class="mf">0.75</span><span class="p">;</span>
+          <span class="nv">margin: </span><span class="mi">5</span><span class="nx">px</span> <span class="mi">0</span> <span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">tags</span> <span class="p">{</span>
+        <span class="nx">list</span><span class="o">-</span><span class="nx">style</span><span class="o">-</span><span class="nv">type: </span><span class="nx">none</span><span class="p">;</span>
+        <span class="nv">padding: </span><span class="mi">0</span><span class="p">;</span>
+        <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.75</span><span class="nx">em</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">tags</span> <span class="nx">li</span> <span class="p">{</span>
+          <span class="nv">display: </span><span class="nx">inline</span><span class="p">;</span>
+          <span class="nv">padding: </span><span class="p">.</span><span class="mi">3</span><span class="nx">em</span> <span class="p">.</span><span class="mi">5</span><span class="nx">em</span><span class="p">;</span>
+          <span class="nv">margin: </span><span class="p">.</span><span class="mi">2</span><span class="nx">em</span><span class="p">;</span>
+          <span class="nv">border: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#888;</span>
+          <span class="nv">background: </span><span class="c1">#F8F8F4;</span>
+          <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="p">.</span><span class="mi">75</span><span class="nx">em</span><span class="p">;</span>
+        <span class="p">}</span>
+          <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">tags</span> <span class="nx">li</span> <span class="nx">a</span> <span class="p">{</span>
+            <span class="nv">color: </span><span class="nx">inherit</span><span class="p">;</span>
+            <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">inherit</span><span class="p">;</span>
+          <span class="p">}</span>
+        
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">body</span> <span class="p">{</span>
+          <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
+        <span class="p">}</span>
+      
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">body</span> <span class="nx">p</span><span class="p">,</span> <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">body</span> <span class="nx">pre</span> <span class="p">{</span>
+          <span class="nx">margin</span><span class="o">-</span><span class="nv">top: </span><span class="mi">0</span><span class="p">;</span>
+        <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">attribution</span> <span class="p">{</span>  
+        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mi">11</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nv">height: </span><span class="mi">4</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nv">float: </span><span class="nx">right</span><span class="p">;</span>
+        <span class="nv">width: </span><span class="mi">160</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nv">border: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#E8E8E4;</span>
+        <span class="nx">margin</span><span class="o">-</span><span class="nv">left: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nv">padding: </span><span class="mi">4</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">8</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nv">background: </span><span class="c1">#F8F8F4;</span>
+        <span class="nv">position: </span><span class="nx">relative</span><span class="p">;</span>
+        <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.6</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">margin</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">8</span><span class="nx">px</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+        <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">attribution</span> <span class="nx">img</span> <span class="p">{</span>
+          <span class="nv">border: </span><span class="mi">1</span><span class="nx">px</span> <span class="nx">solid</span> <span class="c1">#E8E8E4;</span>
+          <span class="nx">border</span><span class="o">-</span><span class="nv">right: </span><span class="mi">0</span><span class="p">;</span>
+          <span class="nx">border</span><span class="o">-</span><span class="nv">bottom: </span><span class="mi">0</span><span class="p">;</span>
+          <span class="nv">float: </span><span class="nx">right</span><span class="p">;</span>
+          <span class="nv">position: </span><span class="nx">absolute</span><span class="p">;</span>
+          <span class="nv">bottom: </span><span class="mi">0</span><span class="nx">px</span><span class="p">;</span>
+          <span class="nv">right: </span><span class="mi">0</span><span class="nx">px</span><span class="p">;</span>
+        <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">col</span> <span class="p">{</span>
+        <span class="nv">float: </span><span class="nx">right</span><span class="p">;</span>
+        <span class="nv">width: </span><span class="mi">665</span><span class="nx">px</span><span class="p">;</span>
+      <span class="p">}</span>
 
-      <span class="o">&lt;</span><span class="err">/div&gt;&lt;/div&gt;</span>
-      <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">style</span><span class="o">=</span><span class="s2">&quot;clear: both;&quot;</span><span class="o">&gt;&lt;</span><span class="err">/div&gt;</span>
-      <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">    ).join(&#39;\n&#39;) + &quot;&quot;&quot;</span><span class="o">&lt;</span><span class="err">/div&gt;</span>
-    <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;footer&quot;</span><span class="o">&gt;</span>
-      <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="o">&gt;</span><span class="nx">exported</span> <span class="nx">using</span> <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;#{encodeHTMLText manifest.homepage_url}&quot;</span><span class="o">&gt;</span><span class="nx">StackScraper</span><span class="o">&lt;</span><span class="err">/a&gt;&lt;/a&gt;</span>
+      <span class="p">.</span><span class="nx">post</span> <span class="p">.</span><span class="nx">col</span> <span class="nx">img</span> <span class="p">{</span>
+        <span class="nx">max</span><span class="o">-</span><span class="nv">width: </span><span class="mi">665</span><span class="nx">px</span><span class="p">;</span>
+      <span class="p">}</span>
+    
+      <span class="nx">blockquote</span> <span class="p">{</span>
+        <span class="nv">margin: </span><span class="p">.</span><span class="mi">5</span><span class="nx">em</span> <span class="p">.</span><span class="mi">25</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">margin</span><span class="o">-</span><span class="nv">bottom: </span><span class="p">.</span><span class="mi">75</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nv">padding: </span><span class="mi">1</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">padding</span><span class="o">-</span><span class="nv">bottom: </span><span class="mf">0.5</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nv">background: </span><span class="c1">#EEE;</span>
+      <span class="p">}</span>
+      
+      <span class="nx">pre</span> <span class="p">{</span>
+        <span class="nv">background: </span><span class="c1">#EEE;</span>
+        <span class="nv">padding: </span><span class="mi">8</span><span class="nx">px</span> <span class="mi">8</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nx">margin</span><span class="o">-</span><span class="nx">bottom</span><span class="p">;</span> <span class="mi">10</span><span class="nx">px</span><span class="p">;</span>
+        <span class="nv">font: </span><span class="mi">100</span><span class="o">%</span> <span class="nx">Menlo</span><span class="p">,</span> <span class="nx">Monaco</span><span class="p">,</span> <span class="nx">Consolas</span><span class="p">,</span> <span class="s2">&quot;Lucida Console&quot;</span><span class="p">,</span> <span class="nx">monospace</span><span class="p">;</span>
+        <span class="nx">line</span><span class="o">-</span><span class="nv">height: </span><span class="mf">1.3</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">overflow</span><span class="o">-</span><span class="nv">x: </span><span class="nx">scroll</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">footer</span> <span class="p">{</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">size: </span><span class="mf">0.8</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nx">text</span><span class="o">-</span><span class="nv">align: </span><span class="nx">center</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">footer</span> <span class="nx">a</span> <span class="p">{</span>
+        <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">none</span><span class="p">;</span>
+        <span class="nv">color: </span><span class="c1">#222;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">footer</span> <span class="nx">a</span><span class="o">:</span><span class="nx">hover</span> <span class="p">{</span>
+        <span class="nx">text</span><span class="o">-</span><span class="nv">decoration: </span><span class="nx">underline</span><span class="p">;</span>
+      <span class="p">}</span>
+    
+      <span class="p">.</span><span class="nx">comments</span> <span class="p">{</span>
+        <span class="nv">display: </span><span class="nx">none</span><span class="p">;</span>
+      <span class="p">}</span>
+    
+      <span class="p">.</span><span class="nx">comments</span><span class="o">:</span><span class="nx">target</span> <span class="p">{</span>
+        <span class="nv">display: </span><span class="nx">block</span><span class="p">;</span>
+      <span class="p">}</span>
+    
+      <span class="p">.</span><span class="nx">comments</span> <span class="p">.</span><span class="nx">comment</span> <span class="p">{</span>
+        <span class="nv">padding: </span><span class="p">.</span><span class="mi">125</span><span class="nx">em</span><span class="p">;</span>
+        <span class="nv">border: </span><span class="p">.</span><span class="mi">125</span><span class="nx">em</span> <span class="nx">solid</span> <span class="c1">#EEE;</span>
+        <span class="nv">background: </span><span class="c1">#F8F8F8;</span>
+      <span class="p">}</span>
+    
+      <span class="p">.</span><span class="nx">comments</span> <span class="p">.</span><span class="nx">comment</span> <span class="p">.</span><span class="nx">score</span><span class="p">,</span> <span class="p">.</span><span class="nx">comments</span> <span class="p">.</span><span class="nx">comment</span> <span class="p">.</span><span class="nx">author</span> <span class="p">{</span>
+        <span class="nx">font</span><span class="o">-</span><span class="nv">weight: </span><span class="nx">bold</span><span class="p">;</span>
+      <span class="p">}</span>
+      
+      <span class="p">.</span><span class="nx">clear</span> <span class="p">{</span> <span class="nv">clear: </span><span class="nx">both</span><span class="p">;</span> <span class="p">}</span>
+    <span class="o">&lt;</span><span class="err">/style&gt;</span>
+  <span class="o">&lt;</span><span class="err">/head&gt;</span>
+  <span class="o">&lt;</span><span class="nx">body</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;wrapper&quot;</span><span class="o">&gt;</span>
+      <span class="c1">#{@renderPost(question)}</span>
+    
+      <span class="o">&lt;</span><span class="nx">h2</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;answers&quot;</span><span class="o">&gt;</span>
+        <span class="c1">#{@encodeHTMLText(question.answers.length)} Answers</span>
+      <span class="o">&lt;</span><span class="err">/h2&gt;</span>
+    
+      <span class="c1">#{(@renderPost(answer) for answer in question.answers).join(&#39;\n&#39;)}</span>
     <span class="o">&lt;</span><span class="err">/div&gt;</span>
-<span class="o">&lt;</span><span class="nx">script</span><span class="o">&gt;</span>
-<span class="nx">var</span> <span class="nv">QUESTION =</span>
-<span class="err">// BEGIN QUESTION JSON</span>
-<span class="c1">#{JSON.stringify question}</span>
-<span class="o">/</span><span class="err">/ END QUESTION JSON</span>
-<span class="p">;</span>
-<span class="o">&lt;</span><span class="err">/script&gt;</span>
-  <span class="o">&lt;</span><span class="err">/body&gt;</span>
-<span class="o">&lt;</span><span class="err">/html&gt;&quot;&quot;&quot;</span>
+    <span class="o">&lt;</span><span class="nx">div</span> <span class="k">class</span><span class="o">=</span><span class="s2">&quot;footer&quot;</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;/&quot;</span><span class="o">&gt;</span><span class="nx">exported</span> <span class="nx">using</span> <span class="o">&lt;</span><span class="nx">a</span> <span class="nx">href</span><span class="o">=</span><span class="s2">&quot;#{@encodeHTMLText(manifest.homepage_url)}&quot;</span><span class="o">&gt;</span><span class="nx">StackScraper</span><span class="o">&lt;</span><span class="err">/a&gt;&lt;/a&gt;</span>
+    <span class="o">&lt;</span><span class="err">/div&gt;</span>
+  <span class="o">&lt;</span><span class="nx">script</span><span class="o">&gt;</span>
+  <span class="nx">var</span> <span class="nv">QUESTION =</span>
+  <span class="err">// BEGIN QUESTION JSON</span>
+  <span class="c1">#{JSON.stringify question}</span>
+  <span class="o">/</span><span class="err">/ END QUESTION JSON</span>
+  <span class="p">;</span>
+  <span class="o">&lt;</span><span class="err">/script&gt;</span>
+    <span class="o">&lt;</span><span class="err">/body&gt;</span>
+  <span class="o">&lt;</span><span class="err">/html&gt;&quot;&quot;&quot;</span>
   
   <span class="nx">do</span> <span class="nx">main</span>
 

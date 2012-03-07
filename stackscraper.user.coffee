@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.2.9
+// @version        0.3.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.2.9'
+  version: '0.3.0'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -59,7 +59,7 @@ body = (manifest) ->
       $(this).addClass 'ac_loading'
       stackScraper.getQuestion(questionId).then (question) =>
         bb = new BlobBuilder
-        bb.append renderQuestion(question)
+        bb.append stackScraper.renderQuestionPage(question)
         $(@).removeClass 'ac_loading'
         window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.html"
     
@@ -279,357 +279,330 @@ body = (manifest) ->
           request.setRequestHeader 'X-StackScraper-Version', manifest.version
           return existingBeforeSend?.apply this, arguments
         $.ajax(url, options)
-    
-  encodeHTMLText = (text) ->
-    String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;')
+ 
+    encodeHTMLText: (text) ->
+      String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;')
   
-  renderQuestion = (question, base = ('http://' + window?.location?.host)) ->
-    """<!doctype html><html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="StackScraper #{manifest.version}" /> 
-  <title>
-    #{encodeHTMLText question.title}
-  </title>
-  #{if base then "<base href=\"#{base}\" />" else ''}
-  <style>
-    html {
-      background: #D8D8D8;
-    }
-    
-    body {
-      font: 14px sans-serif;
-    }
-      
-    a, a:visited {
-      color: #226;
-    }
-      
-    .wrapper {
-      width: 735px;
-      margin: 1em auto;
-      background: white;
-      padding: 1em;
-    }
-      
-    h1,h2, h3, h4 {
-      padding-bottom: .2em;
-      border-bottom: 1px solid black;
-      margin-top: 0;
-    }
-      
-    h1 {
-      font-size: 1.6em;
-    }
-    h2 {
-      font-size: 1.4em;
-    }
-    h3 {
-      font-size: 1.2em;
-    }
-      
-    h2.answers {
-      border-bottom: 1px solid black;
-    }
-      
-    .implied-by-style {
-      display: none;
-    }
-      
-    .source-header {
-      display: block;
-      background-color: #EEE;
-      padding: 1em 1em;
-      font-size: 1.3em;
-      font-weight: bold;
-      color: black;
-      text-align: left;
-      margin: 0.5em 0;
-      text-align: center;
-    }
-    
-      
-      .source-header a, .source-header a:visited {
-        color: black;
-      }
-      
-    .post .metrics {
-      float: left;
-      text-align: center;
-      width: 58px;
-      margin: 0px 0 0;
-      padding: 5px 0;
-      border-right: 1px solid #DDD;
-    }
-      
-    .post + .post {
-        border-top: 1px solid #888;
-        padding-top: 1em;
-        margin-top: 1em;
-    }
-      
-      .post .metrics .value {
-        display: block;
-        font-weight: bold;
-        font-size: 1.3em;
-        margin: 3px 0 0;
-      }
-        
-      .post .metrics .unit {
-        display: block;
-        opacity: 0.5;
-      }
-        
-      .post .metrics .annotation {
-        display: block;
-        font-weight: bold;
-        font-size: 0.8em;
-        opacity: 0.75;
-        margin: 5px 0 0;
-      }
-      
-    .post .tags {
-      list-style-type: none;
-      padding: 0;
-      line-height: 1.75em;
-    }
-      
-      .post .tags li {
-        display: inline;
-        padding: .3em .5em;
-        margin: .2em;
-        border: 1px solid #888;
-        background: #F8F8F4;
-        font-size: .75em;
-      }
-        .post .tags li a {
-          color: inherit;
-          text-decoration: inherit;
-        }
-        
-      .post .body {
-        line-height: 1.3em;
-      }
-      
-      .post .body p, .post .body pre {
-        margin-top: 0;
-      }
-      
-    .post .attribution {  
-      font-size: 11px;
-      height: 4em;
-      float: right;
-      width: 160px;
-      border: 1px solid #E8E8E4;
-      margin-left: 1em;
-      padding: 4px;
-      padding-bottom: 8px;
-      background: #F8F8F4;
-      position: relative;
-      line-height: 1.6em;
-      margin-bottom: 8px;
-    }
-      
-      .post .attribution img {
-        border: 1px solid #E8E8E4;
-        border-right: 0;
-        border-bottom: 0;
-        float: right;
-        position: absolute;
-        bottom: 0px;
-        right: 0px;
-      }
-      
-    .post .col {
-      float: right;
-      width: 665px;
-    }
-
-    .post .col img {
-      max-width: 665px;
-    }
-    
-    blockquote {
-      margin: .5em .25em;
-      margin-bottom: .75em;
-      padding: 1em;
-      padding-bottom: 0.5em;
-      background: #EEE;
-    }
-      
-    pre {
-      background: #EEE;
-      padding: 8px 8px;
-      margin-bottom; 10px;
-      font: 100% Menlo, Monaco, Consolas, "Lucida Console", monospace;
-      line-height: 1.3em;
-      overflow-x: scroll;
-    }
-      
-    .footer {
-      font-size: 0.8em;
-      text-align: center;
-    }
-      
-    .footer a {
-      text-decoration: none;
-      color: #222;
-    }
-      
-    .footer a:hover {
-      text-decoration: underline;
-    }
-    
-    .comments {
-      display: none;
-    }
-    
-    .comments:target {
-      display: block;
-    }
-    
-    
-    .comments .comment {
-      padding: .125em;
-      border: .125em solid #EEE;
-      background: #F8F8F8;
-    }
-    
-    .comments .comment .score, .comments .comment .author {
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="question post" id="#{encodeHTMLText question.post_id}">
-      <h1>#{encodeHTMLText question.title}</h1>
-      
-      <div class="metrics">
-        <span class="value">#{question.score}</span>
-        <span class="unit">votes</span>
-        <br>
-        <span class="value">#{question.view_count}</span>
-        <span class="unit">views</span>
-          #{if question.comments.length
-            "<br><a href=\"javascript:void(location.hash = '#{question.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{question.comments.length}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
-          else ''}
-      </div>
-      <div class="col">
-        <div class="body">
-          #{question.body}
-        </div>
-        """ + (if question.owner or question.creation_date_s then """
-          <div class="attribution">
-            asked #{if question.owner
-              "by <a href=\"/u/#{encodeHTMLText question.owner.user_id}\">#{encodeHTMLText question.owner.display_name}<img src=\"#{encodeHTMLText question.owner.profile_image}\" alt=\"\" /></a><br>"
-            else '<br>'}
-            #{question.creation_date_s}
-        </div>
-        """ else '') + 
-        (if question.last_edit_date_s or question.last_editor then """
-          <div class="attribution">
-            edited #{if question.last_editor
-              "by <a href=\"/u/#{encodeHTMLText question.last_editor.user_id}\">#{encodeHTMLText question.last_editor.display_name}<img src=\"#{encodeHTMLText question.last_editor.profile_image}\" alt=\"\" /></a><br>"
-            else '<br>'}
-            #{encodeHTMLText question.last_edit_date_s}
-        </div>
-        """ else '') + """
-        <ul class="tags">
-          #{(for tag in question.tags
-            "<li><a href=\"/tags/#{encodeHTMLText tag}\">#{encodeHTMLText tag}</a></li>"
-          ).join('\n')}
-        </ul>
-      
-      <div style="clear: both;"></div>
-      
-      """ + (if question.comments.length then """
-        <div class="comments" id="#{question.post_id}-comments">
-          #{(for comment in question.comments
-            "<div class=\"comment\">" +
-              "<span class=\"score\">[#{comment.score}]</span> " +
-              "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</span> " +
-              "<span class=\"body\">#{comment.body}</span>" +
-            "</div>"
-          ).join('\n')}
-        </div>
-      """ else '') + """
-        <div class="source-header">
-          This was <a href="/q/#{question.post_id}">originally posted</a> on Stack Exchange#{if question.deleted then ', but it has been deleted' else ''}.
-        </div>
-        
-      </div>
-    </div>  
-    
-      <div style="clear: both;"></div>
-	  
-    <h2 class="answers">
-      #{encodeHTMLText question.answers.length} Answers
-    </h2>
-    
-    """ + (for answer in question.answers
+    renderPost: (post) ->
       """
-      <div class="answer post" id="#{encodeHTMLText answer.post_id}">
+      <div class="#{@encodeHTMLText(post.post_type)} post" id="#{@encodeHTMLText(post.post_id)}">
+        #{if post.title?
+          "<h1>#{@encodeHTMLText(post.title)}</h1>"
+        else ''}
         <div class="metrics">
-          <span class="value">#{answer.score}</span>
-          <span class="unit">votes</span>
-          #{if answer.comments.length
-            "<br><a href=\"javascript:void(location.hash = '#{answer.post_id}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{answer.comments.length}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
+          #{if post.score?
+            "<span class=\"value\">#{@encodeHTMLText(post.score)}</span>" +
+            "<span class=\"unit\">votes</span>"
+          else ''}
+          #{if post.view_count?
+            "<br>" +
+            "<span class=\"value\">#{@encodeHTMLText(post.view_count)}</span>" +
+            "<span class=\"unit\">views</span>"
+          else ''}
+          #{if post.comments?.length
+            "<br><a href=\"javascript:void(location.hash = '#{@encodeHTMLText(post.post_id)}-comments')\" style=\"text-decoration: none;\"><span class=\"value\">#{@encodeHTMLText(post.comments.length)}</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>"
           else ''}
         </div>
         <div class="col">
           <div class="body">
-            #{answer.body}
+            #{post.body}
           </div>
-        """ +
-        (if answer.owner or answer.creation_date_s then """
-          <div class="attribution">
-            answered #{if answer.owner
-              "by <a href=\"/u/#{encodeHTMLText answer.owner.user_id}\">#{encodeHTMLText answer.owner.display_name}<img src=\"#{encodeHTMLText answer.owner.profile_image}\" alt=\"\" /></a><br>"
-            else '<br>'}
-             #{answer.creation_date_s}
-        </div>
-        """ else '') + 
-        (if answer.last_edit_date_s or answer.last_editor then """
-          <div class="attribution">
-            edited #{if answer.last_editor
-              "by <a href=\"/u/#{encodeHTMLText answer.last_editor.user_id}\">#{encodeHTMLText answer.last_editor.display_name}<img src=\"#{encodeHTMLText answer.last_editor.profile_image}\" alt=\"\" /></a><br>"
-            else '<br>'}
-             #{encodeHTMLText answer.last_edit_date_s}
-        </div>
-        """ else '') +
         
-        """
-      <div style="clear: both;"></div>
+          #{@renderAttributionBox(post.creation_date_s, post.owner, 'asked')}
+        
+          #{@renderAttributionBox(post.last_edit_date_s, post.last_editor, 'edited')}
+        
+          #{if post.tags?
+            "<ul class=\"tags\">" +
+              ("<li><a href=\"/tags/#{@encodeHTMLText tag}\">#{@encodeHTMLText tag}</a></li>" for tag in post.tags
+              ).join('\n') +
+            "</ul>"
+          else ''}
+        
+          <div class="clear"></div>
       
-      """ + (if answer.comments.length then """
-        <div class="comments" id="#{answer.post_id}-comments">
-          #{(for comment in answer.comments
-            "<div class=\"comment\">" +
-              "<span class=\"score\">[#{comment.score}]</span> " +
-              "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{encodeHTMLText comment.display_name}</a>:</span> " +
-              "<span class=\"body\">#{comment.body}</span>" +
-            "</div>"
+          #{@renderPostComments post}
+      
+          #{if post.post_type is 'question'
+              "<div class=\"source-header\">" +
+                "This was <a href=\"/q/#{post.post_id}\">originally posted</a> on Stack Exchange#{if post.deleted then ', but it has been deleted' else ''}." +
+              "</div>"
+          else ''}
+        </div>
+      </div>  
+    
+      <div class="clear"></div>
+      """
+  
+    renderAttributionBox: (date_s, shallow_user, verb) ->
+      if date_s? then """
+        <div class="attribution">
+          #{verb} #{if shallow_user? and shallow_user.profile_image? and shallow_user.user_id? # TODO: degrade more gracefully.
+            "by <a href=\"/u/#{@encodeHTMLText(shallow_user.user_id)}\">#{@encodeHTMLText(shallow_user.display_name)}<img src=\"#{@encodeHTMLText(shallow_user.profile_image)}\" alt=\"\" /></a><br>"
+          else '<br>'}
+          #{@encodeHTMLText(date_s)}
+        </div>
+      """ else ''
+  
+    renderPostComments: (post) ->
+      if post.comments?.length then """
+        <div class="comments" id="#{@encodeHTMLText post.post_id}-comments">
+          #{(for comment in post.comments
+              "<div class=\"comment\">" +
+                "<span class=\"score\">[#{comment.score}]</span> " +
+                "<span class=\"author\"><a href=\"/u/#{comment.user_id}\">#{@encodeHTMLText comment.display_name}</a>:</span> " +
+                "<span class=\"body\">#{comment.body}</span>" +
+              "</div>"
           ).join('\n')}
         </div>
-      """ else '') + """
+      """ else ''
+  
+    renderQuestionPage: (question, base = ('http://' + window?.location?.host)) ->
+      """<!doctype html><html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="generator" content="StackScraper #{manifest.version}" /> 
+    <title>
+      #{@encodeHTMLText(question.title)}
+    </title>
+    #{if base then "<base href=\"#{@encodeHTMLText(base)}\" />" else ''}
+    <style>
+      html {
+        background: #D8D8D8;
+      }
+    
+      body {
+        font: 14px sans-serif;
+      }
+      
+      a, a:visited {
+        color: #226;
+      }
+      
+      .wrapper {
+        width: 735px;
+        margin: 1em auto;
+        background: white;
+        padding: 1em;
+      }
+      
+      h1,h2, h3, h4 {
+        padding-bottom: .2em;
+        border-bottom: 1px solid black;
+        margin-top: 0;
+      }
+      
+      h1 {
+        font-size: 1.6em;
+      }
+      h2 {
+        font-size: 1.4em;
+      }
+      h3 {
+        font-size: 1.2em;
+      }
+      
+      h2.answers {
+        border-bottom: 1px solid black;
+      }
+      
+      .implied-by-style {
+        display: none;
+      }
+      
+      .source-header {
+        display: block;
+        background-color: #EEE;
+        padding: 1em 1em;
+        font-size: 1.3em;
+        font-weight: bold;
+        color: black;
+        text-align: left;
+        margin: 0.5em 0;
+        text-align: center;
+      }
+    
+      
+        .source-header a, .source-header a:visited {
+          color: black;
+        }
+      
+      .post .metrics {
+        float: left;
+        text-align: center;
+        width: 58px;
+        margin: 0px 0 0;
+        padding: 5px 0;
+        border-right: 1px solid #DDD;
+      }
+      
+      .post + .post {
+          border-top: 1px solid #888;
+          padding-top: 1em;
+          margin-top: 1em;
+      }
+      
+      .post + .clear + .post {
+          border-top: 1px solid #888;
+          padding-top: 1em;
+          margin-top: 1em;
+      }
+      
+        .post .metrics .value {
+          display: block;
+          font-weight: bold;
+          font-size: 1.3em;
+          margin: 3px 0 0;
+        }
+        
+        .post .metrics .unit {
+          display: block;
+          opacity: 0.5;
+        }
+        
+        .post .metrics .annotation {
+          display: block;
+          font-weight: bold;
+          font-size: 0.8em;
+          opacity: 0.75;
+          margin: 5px 0 0;
+        }
+      
+      .post .tags {
+        list-style-type: none;
+        padding: 0;
+        line-height: 1.75em;
+      }
+      
+        .post .tags li {
+          display: inline;
+          padding: .3em .5em;
+          margin: .2em;
+          border: 1px solid #888;
+          background: #F8F8F4;
+          font-size: .75em;
+        }
+          .post .tags li a {
+            color: inherit;
+            text-decoration: inherit;
+          }
+        
+        .post .body {
+          line-height: 1.3em;
+        }
+      
+        .post .body p, .post .body pre {
+          margin-top: 0;
+        }
+      
+      .post .attribution {  
+        font-size: 11px;
+        height: 4em;
+        float: right;
+        width: 160px;
+        border: 1px solid #E8E8E4;
+        margin-left: 1em;
+        padding: 4px;
+        padding-bottom: 8px;
+        background: #F8F8F4;
+        position: relative;
+        line-height: 1.6em;
+        margin-bottom: 8px;
+      }
+      
+        .post .attribution img {
+          border: 1px solid #E8E8E4;
+          border-right: 0;
+          border-bottom: 0;
+          float: right;
+          position: absolute;
+          bottom: 0px;
+          right: 0px;
+        }
+      
+      .post .col {
+        float: right;
+        width: 665px;
+      }
 
-      </div></div>
-      <div style="clear: both;"></div>
-      """
-    ).join('\n') + """</div>
-    <div class="footer">
-      <a href="/">exported using <a href="#{encodeHTMLText manifest.homepage_url}">StackScraper</a></a>
+      .post .col img {
+        max-width: 665px;
+      }
+    
+      blockquote {
+        margin: .5em .25em;
+        margin-bottom: .75em;
+        padding: 1em;
+        padding-bottom: 0.5em;
+        background: #EEE;
+      }
+      
+      pre {
+        background: #EEE;
+        padding: 8px 8px;
+        margin-bottom; 10px;
+        font: 100% Menlo, Monaco, Consolas, "Lucida Console", monospace;
+        line-height: 1.3em;
+        overflow-x: scroll;
+      }
+      
+      .footer {
+        font-size: 0.8em;
+        text-align: center;
+      }
+      
+      .footer a {
+        text-decoration: none;
+        color: #222;
+      }
+      
+      .footer a:hover {
+        text-decoration: underline;
+      }
+    
+      .comments {
+        display: none;
+      }
+    
+      .comments:target {
+        display: block;
+      }
+    
+      .comments .comment {
+        padding: .125em;
+        border: .125em solid #EEE;
+        background: #F8F8F8;
+      }
+    
+      .comments .comment .score, .comments .comment .author {
+        font-weight: bold;
+      }
+      
+      .clear { clear: both; }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      #{@renderPost(question)}
+    
+      <h2 class="answers">
+        #{@encodeHTMLText(question.answers.length)} Answers
+      </h2>
+    
+      #{(@renderPost(answer) for answer in question.answers).join('\n')}
     </div>
-<script>
-var QUESTION =
-// BEGIN QUESTION JSON
-#{JSON.stringify question}
-// END QUESTION JSON
-;
-</script>
-  </body>
-</html>"""
+    <div class="footer">
+      <a href="/">exported using <a href="#{@encodeHTMLText(manifest.homepage_url)}">StackScraper</a></a>
+    </div>
+  <script>
+  var QUESTION =
+  // BEGIN QUESTION JSON
+  #{JSON.stringify question}
+  // END QUESTION JSON
+  ;
+  </script>
+    </body>
+  </html>"""
   
   do main
 
