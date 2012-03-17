@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.2
+// @version        0.3.3
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.2',
+  version: '0.3.3',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -132,14 +132,18 @@ body = function(manifest) {
         tasks = [];
         _ref = [question].concat(question.answers);
         _fn = function(post) {
-          tasks.push(_this.getPostSource(post.post_id, null).pipe(function(postSource) {
-            post.title_source = postSource.title;
-            post.body_source = postSource.body;
-            return post;
-          }, function() {
-            console.warn("unable to retrieve source of post " + post.post_id);
-            return (new $.Deferred).resolve();
-          }));
+          if (!post.locked) {
+            tasks.push(_this.getPostSource(post.post_id, null).pipe(function(postSource) {
+              post.title_source = postSource.title;
+              post.body_source = postSource.body;
+              return post;
+            }, function() {
+              console.warn("unable to retrieve source of post " + post.post_id + " (error)");
+              return (new $.Deferred).resolve();
+            }));
+          } else {
+            console.warn("unable to retrieve source of post " + post.post_id + " (locked)");
+          }
           tasks.push(_this.getPostComments(post.post_id).pipe(function(postComments) {
             post.comments = postComments;
             return post;
@@ -237,7 +241,6 @@ body = function(manifest) {
               console.log("Skipping individually-deleted answer " + post.post_id + ".");
               continue;
             }
-            if (question.locked) post.locked = true;
             question.answers.push(post);
           }
         }
@@ -388,13 +391,13 @@ body = function(manifest) {
         commentPage$ = $(makeDocument("<body><table>" + commentsSource + "</table></body>"));
         postComments = [];
         $('.comment', commentPage$).each(function() {
-          var _ref;
+          var _ref, _ref2, _ref3, _ref4, _ref5;
           return postComments.push({
             comment_id: $(this).attr('id').split('-')[2],
             score: +((_ref = $.trim($('.comment-score', this).text())) != null ? _ref : 0),
             body: $.trim($('.comment-copy', this).html()),
-            user_id: +$('a.comment-user', this).attr('href').split(/\//g)[2],
-            display_name: $($('a.comment-user', this)[0].childNodes[0]).text()
+            user_id: +((_ref2 = $('a.comment-user', this).attr('href')) != null ? (_ref3 = _ref2.split(/\//g)) != null ? _ref3[2] : void 0 : void 0),
+            display_name: $((_ref4 = $('a.comment-user', this)[0]) != null ? (_ref5 = _ref4.childNodes) != null ? _ref5[0] : void 0 : void 0).text()
           });
         });
         return postComments;
@@ -501,7 +504,7 @@ body = function(manifest) {
           _results.push(this.renderPost(answer, question));
         }
         return _results;
-      }).call(this)).join('\n')) + "\n  </div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (this.encodeHTMLText(manifest.homepage_url)) + "\">StackScraper</a></a>\n  </div>\n<script>\nvar QUESTION =\n// BEGIN QUESTION JSON\n" + (JSON.stringify(question)) + "\n// END QUESTION JSON\n;\n</script>\n  </body>\n</html>";
+      }).call(this)).join('\n')) + "\n  </div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (this.encodeHTMLText(manifest.homepage_url)) + "\">" + (this.encodeHTMLText(manifest.name)) + " v" + (this.encodeHTMLText(manifest.version)) + "</a></a>\n  </div>\n<script>\nvar QUESTION =\n// BEGIN QUESTION JSON\n" + (JSON.stringify(question)) + "\n// END QUESTION JSON\n;\n</script>\n  </body>\n</html>";
     };
 
     return StackScraper;

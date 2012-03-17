@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.2
+// @version        0.3.3
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.2'
+  version: '0.3.3'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -113,14 +113,17 @@ body = (manifest) ->
       
         for post in [question].concat(question.answers)
           do (post) =>
-            tasks.push @getPostSource(post.post_id, null).pipe( (postSource) =>
-              post.title_source = postSource.title
-              post.body_source = postSource.body
-              post
-            , ->
-              console.warn "unable to retrieve source of post #{post.post_id}"
-              (new $.Deferred).resolve()
-            )
+            if not post.locked
+              tasks.push @getPostSource(post.post_id, null).pipe( (postSource) =>
+                post.title_source = postSource.title
+                post.body_source = postSource.body
+                post
+              , ->
+                console.warn "unable to retrieve source of post #{post.post_id} (error)"
+                (new $.Deferred).resolve()
+              )
+            else
+              console.warn "unable to retrieve source of post #{post.post_id} (locked)"
             
             tasks.push @getPostComments(post.post_id).pipe( (postComments) =>
               post.comments = postComments
@@ -193,9 +196,6 @@ body = (manifest) ->
             if post.deleted and ((not question.deleted) or (post.deleted_date != question.deleted_date))
               console.log "Skipping individually-deleted answer #{post.post_id}."
               continue
-            
-            if question.locked
-              post.locked = true
             
             question.answers.push post
       
@@ -313,8 +313,8 @@ body = (manifest) ->
             comment_id: $(@).attr('id').split('-')[2]
             score: +($.trim($('.comment-score', @).text()) ? 0)
             body: $.trim($('.comment-copy', @).html())
-            user_id: +$('a.comment-user', @).attr('href').split(/\//g)[2]
-            display_name: $($('a.comment-user', @)[0].childNodes[0]).text()
+            user_id: +$('a.comment-user', @).attr('href')?.split(/\//g)?[2]
+            display_name: $($('a.comment-user', @)[0]?.childNodes?[0]).text()
         postComments
     
     getPostVoteCount: (postid) ->
@@ -666,7 +666,7 @@ body = (manifest) ->
       #{(@renderPost(answer, question) for answer in question.answers).join('\n')}
     </div>
     <div class="footer">
-      <a href="/">exported using <a href="#{@encodeHTMLText(manifest.homepage_url)}">StackScraper</a></a>
+      <a href="/">exported using <a href="#{@encodeHTMLText(manifest.homepage_url)}">#{@encodeHTMLText(manifest.name)} v#{@encodeHTMLText(manifest.version)}</a></a>
     </div>
   <script>
   var QUESTION =
