@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.3
+// @version        0.3.4
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.3'
+  version: '0.3.4'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -109,6 +109,7 @@ body = (manifest) ->
         return @questions[questionid]
       
       @questions[questionid] = @getShallowQuestion(questionid).pipe (question) =>
+        question.__generator__ = "#{manifest.name} #{manifest.version}"
         tasks = []
       
         for post in [question].concat(question.answers)
@@ -252,6 +253,7 @@ body = (manifest) ->
         if nameDisplay.length is 3
           if $(nameDisplay[0]).text().indexOf('%') == -1
             # can only be sure of owner if post doesn't have other contributors
+			# this could still be wrong if somebody entirely rewrote a post.
             post.owner = display_name: $(nameDisplay[2]).text()
         else
           post.owner = display_name: $(nameDisplay[0]).text()
@@ -435,7 +437,7 @@ body = (manifest) ->
       """<!doctype html><html>
   <head>
     <meta charset="utf-8" />
-    <meta name="generator" content="StackScraper #{manifest.version}" /> 
+    <meta name="generator" content="#{manifest.name} #{manifest.version}" /> 
     <title>
       #{@encodeHTMLText(question.title)}
     </title>
@@ -666,7 +668,7 @@ body = (manifest) ->
       #{(@renderPost(answer, question) for answer in question.answers).join('\n')}
     </div>
     <div class="footer">
-      <a href="/">exported using <a href="#{@encodeHTMLText(manifest.homepage_url)}">#{@encodeHTMLText(manifest.name)} v#{@encodeHTMLText(manifest.version)}</a></a>
+      <a href="/">exported using <a href="#{@encodeHTMLText(manifest.homepage_url)}">#{@encodeHTMLText(manifest.name)} #{@encodeHTMLText(manifest.version)}</a></a>
     </div>
   <script>
   var QUESTION =
