@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.1
+// @version        0.3.2
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.1'
+  version: '0.3.2'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -131,8 +131,8 @@ body = (manifest) ->
             )
             
             tasks.push @getPostVoteCount(post.post_id).pipe( (voteCount) =>
-              post.up_votes = voteCount.up
-              post.down_votes = voteCount.down
+              post.up_vote_count = voteCount.up
+              post.down_vote_count = voteCount.down
               post
             , ->
               console.warn "unable to retrieve vote counts of post #{post.post_id}"
@@ -159,12 +159,27 @@ body = (manifest) ->
         question.protected = false
         for status in pages[0].find('.question-status')
           type = $('b', status).text()
+          date_z = $('.relativetime', status).attr('title')
+          date = timestampFromRFCDate(date_z)
+          
           if type is 'closed'
-            question.closed = true
             question.title = question.title.replace(/\ \[(closed|migrated)\]$/, '')
-          if type is 'locked' then question.locked = true
-          if type is 'protected' then question.protected = true
-      
+            question.closed = true
+            question.closed_date_z = date_z
+            question.closed_date = date
+          if type is 'deleted'
+            question.deleted = true
+            question.deleted_date_z = date_z
+            question.deleted_date = date
+          if type is 'locked'
+            question.locked = true
+            question.locked_date_z = date_z
+            question.locked_date = date
+          if type is 'protected'
+            question.protected = true
+            question.protected_date_z = date_z
+            question.protected_date = date
+        
         for row in $('#qinfo tr', pages[0])
           key = $('.label-key', row).first().text()
           if key is 'asked'
@@ -174,15 +189,22 @@ body = (manifest) ->
       
         for page$ in pages
           for answer in page$.find('.answer')
-             post = scrapePostElement($(answer))
-             if post.deleted and not question.deleted
-               console.log "Skipping deleted answer #{post.post_id} to not-deleted question #{question.post_id}."
-               continue
-              
-             question.answers.push post
+            post = scrapePostElement($(answer))
+            if post.deleted and ((not question.deleted) or (post.deleted_date != question.deleted_date))
+              console.log "Skipping individually-deleted answer #{post.post_id}."
+              continue
+            
+            if question.locked
+              post.locked = true
+            
+            question.answers.push post
       
         question
-  
+    
+    timestampFromRFCDate = (date_z) ->
+      date = new Date(date_z)
+      Math.floor(date.getTime()/1000 + date.getTimezoneOffset()*60)
+    
     scrapePostElement = (post$) ->
       if is_question = post$.is('.question')
         post =
@@ -197,6 +219,21 @@ body = (manifest) ->
       post.body = $.trim post$.find('.post-text').html()
       post.score = +post$.find('.vote-count-post').text()
       post.deleted = post$.is('.deleted-question, .deleted-answer')
+      
+      for statusInfo in post$.find('.deleted-answer-info')
+        action = $(statusInfo).text().split(/\ /)[0]
+        action_date_z = $('.relativetime', statusInfo).attr('title')
+        action_date = timestampFromRFCDate(action_date_z)
+        
+        if action is 'deleted'
+          post.deleted = true
+          post.deleted_date_z = action_date_z
+          post.deleted_date = action_date
+        
+        if action is 'locked'
+          post.locked = true
+          post.locked_date_z = action_date_z
+          post.locked_date = action_date
       
       sigs = post$.find('.post-signature')
       if sigs.length is 2
@@ -236,15 +273,13 @@ body = (manifest) ->
       if editorSig? and (editTime$ = $('.relativetime', editorSig)).length
         post.last_edit_date_s = editTime$.text()
         post.last_edit_date_z = editTime$.attr('title')
-        _ = new Date(post.last_edit_date_z)
-        post.last_edit_date = Math.floor(_.getTime()/1000 + _.getTimezoneOffset()*60)
+        post.last_edit_date = timestampFromRFCDate(post.last_edit_date_z)
       
       if ownerSig? and (creationTime$ = $('.relativetime', ownerSig)).length
         post.creation_date_s = creationTime$.text()
         post.creation_date_z = creationTime$.attr('title')
-        _ = new Date(post.creation_date_z)
-        post.creation_date = Math.floor(_.getTime()/1000 + _.getTimezoneOffset()*60)
-    
+        post.creation_date = timestampFromRFCDate(post.creation_date_z)
+      
       post
   
     getQuestionDocuments: (questionid) ->

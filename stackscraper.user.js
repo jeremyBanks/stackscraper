@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.1
+// @version        0.3.2
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.1',
+  version: '0.3.2',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -115,7 +115,7 @@ body = function(manifest) {
     return doc;
   };
   StackScraper = (function() {
-    var monthAbbrs, scrapePostElement;
+    var monthAbbrs, scrapePostElement, timestampFromRFCDate;
 
     StackScraper.name = 'StackScraper';
 
@@ -148,8 +148,8 @@ body = function(manifest) {
             return (new $.Deferred).resolve();
           }));
           return tasks.push(_this.getPostVoteCount(post.post_id).pipe(function(voteCount) {
-            post.up_votes = voteCount.up;
-            post.down_votes = voteCount.down;
+            post.up_vote_count = voteCount.up;
+            post.down_vote_count = voteCount.down;
             return post;
           }, function() {
             console.warn("unable to retrieve vote counts of post " + post.post_id);
@@ -170,7 +170,7 @@ body = function(manifest) {
 
     StackScraper.prototype.getShallowQuestion = function(questionid) {
       return this.getQuestionDocuments(questionid).pipe(function(pages) {
-        var answer, key, page$, post, question, row, status, tag, type, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _ref5;
+        var answer, date, date_z, key, page$, post, question, row, status, tag, type, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _ref5;
         question = scrapePostElement($('.question', pages[0]));
         question.title = $('#question-header h1 a', pages[0]).text();
         question.tags = (function() {
@@ -192,12 +192,29 @@ body = function(manifest) {
         for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
           status = _ref2[_i];
           type = $('b', status).text();
+          date_z = $('.relativetime', status).attr('title');
+          date = timestampFromRFCDate(date_z);
           if (type === 'closed') {
-            question.closed = true;
             question.title = question.title.replace(/\ \[(closed|migrated)\]$/, '');
+            question.closed = true;
+            question.closed_date_z = date_z;
+            question.closed_date = date;
           }
-          if (type === 'locked') question.locked = true;
-          if (type === 'protected') question.protected = true;
+          if (type === 'deleted') {
+            question.deleted = true;
+            question.deleted_date_z = date_z;
+            question.deleted_date = date;
+          }
+          if (type === 'locked') {
+            question.locked = true;
+            question.locked_date_z = date_z;
+            question.locked_date = date;
+          }
+          if (type === 'protected') {
+            question.protected = true;
+            question.protected_date_z = date_z;
+            question.protected_date = date;
+          }
         }
         _ref3 = $('#qinfo tr', pages[0]);
         for (_j = 0, _len2 = _ref3.length; _j < _len2; _j++) {
@@ -216,10 +233,11 @@ body = function(manifest) {
           for (_l = 0, _len4 = _ref5.length; _l < _len4; _l++) {
             answer = _ref5[_l];
             post = scrapePostElement($(answer));
-            if (post.deleted && !question.deleted) {
-              console.log("Skipping deleted answer " + post.post_id + " to not-deleted question " + question.post_id + ".");
+            if (post.deleted && ((!question.deleted) || (post.deleted_date !== question.deleted_date))) {
+              console.log("Skipping individually-deleted answer " + post.post_id + ".");
               continue;
             }
+            if (question.locked) post.locked = true;
             question.answers.push(post);
           }
         }
@@ -227,8 +245,14 @@ body = function(manifest) {
       });
     };
 
+    timestampFromRFCDate = function(date_z) {
+      var date;
+      date = new Date(date_z);
+      return Math.floor(date.getTime() / 1000 + date.getTimezoneOffset() * 60);
+    };
+
     scrapePostElement = function(post$) {
-      var communityOwnage$, creationTime$, editTime$, editorSig, is_question, nameDisplay, ownerSig, post, sigs, _, _ref;
+      var action, action_date, action_date_z, communityOwnage$, creationTime$, editTime$, editorSig, is_question, nameDisplay, ownerSig, post, sigs, statusInfo, _i, _len, _ref, _ref2;
       if (is_question = post$.is('.question')) {
         post = {
           post_id: +post$.data('questionid'),
@@ -244,6 +268,23 @@ body = function(manifest) {
       post.body = $.trim(post$.find('.post-text').html());
       post.score = +post$.find('.vote-count-post').text();
       post.deleted = post$.is('.deleted-question, .deleted-answer');
+      _ref = post$.find('.deleted-answer-info');
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        statusInfo = _ref[_i];
+        action = $(statusInfo).text().split(/\ /)[0];
+        action_date_z = $('.relativetime', statusInfo).attr('title');
+        action_date = timestampFromRFCDate(action_date_z);
+        if (action === 'deleted') {
+          post.deleted = true;
+          post.deleted_date_z = action_date_z;
+          post.deleted_date = action_date;
+        }
+        if (action === 'locked') {
+          post.locked = true;
+          post.locked_date_z = action_date_z;
+          post.locked_date = action_date;
+        }
+      }
       sigs = post$.find('.post-signature');
       if (sigs.length === 2) {
         editorSig = sigs[0], ownerSig = sigs[1];
@@ -256,7 +297,7 @@ body = function(manifest) {
           display_name: post$.find('.user-details').text()
         };
       } else if ((communityOwnage$ = post$.find('.community-wiki')).length) {
-        post.community_owned_date_s = (_ref = communityOwnage$.attr('title')) != null ? _ref.match(/as of ([^\.]+)./)[1] : void 0;
+        post.community_owned_date_s = (_ref2 = communityOwnage$.attr('title')) != null ? _ref2.match(/as of ([^\.]+)./)[1] : void 0;
         nameDisplay = post$.find('[id^=history-]').contents();
         if (nameDisplay.length === 3) {
           if ($(nameDisplay[0]).text().indexOf('%') === -1) {
@@ -290,14 +331,12 @@ body = function(manifest) {
       if ((editorSig != null) && (editTime$ = $('.relativetime', editorSig)).length) {
         post.last_edit_date_s = editTime$.text();
         post.last_edit_date_z = editTime$.attr('title');
-        _ = new Date(post.last_edit_date_z);
-        post.last_edit_date = Math.floor(_.getTime() / 1000 + _.getTimezoneOffset() * 60);
+        post.last_edit_date = timestampFromRFCDate(post.last_edit_date_z);
       }
       if ((ownerSig != null) && (creationTime$ = $('.relativetime', ownerSig)).length) {
         post.creation_date_s = creationTime$.text();
         post.creation_date_z = creationTime$.attr('title');
-        _ = new Date(post.creation_date_z);
-        post.creation_date = Math.floor(_.getTime() / 1000 + _.getTimezoneOffset() * 60);
+        post.creation_date = timestampFromRFCDate(post.creation_date_z);
       }
       return post;
     };
