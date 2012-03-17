@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.0
+// @version        0.3.1
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.0'
+  version: '0.3.1'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -174,7 +174,12 @@ body = (manifest) ->
       
         for page$ in pages
           for answer in page$.find('.answer')
-            question.answers.push scrapePostElement $(answer)
+             post = scrapePostElement($(answer))
+             if post.deleted and not question.deleted
+               console.log "Skipping deleted answer #{post.post_id} to not-deleted question #{question.post_id}."
+               continue
+              
+             question.answers.push post
       
         question
   
@@ -200,8 +205,19 @@ body = (manifest) ->
         editorSig = null
         [ownerSig] = sigs
       
-      if (communityOwnage$ = post$.find('.community-wiki')).length
+      if post$.find('.anonymous-gravatar').length
+        post.owner = display_name: post$.find('.user-details').text()
+      else if (communityOwnage$ = post$.find('.community-wiki')).length
         post.community_owned_date_s = communityOwnage$.attr('title')?.match(/as of ([^\.]+)./)[1]
+        
+        nameDisplay = post$.find('[id^=history-]').contents()
+        
+        if nameDisplay.length is 3
+          if $(nameDisplay[0]).text().indexOf('%') == -1
+            # can only be sure of owner if post doesn't have other contributors
+            post.owner = display_name: $(nameDisplay[2]).text()
+        else
+          post.owner = display_name: $(nameDisplay[0]).text()
       else
         if (not communityOwnage$.length) and ownerSig? and $('.user-details a', ownerSig).length
           post.owner =
@@ -220,10 +236,14 @@ body = (manifest) ->
       if editorSig? and (editTime$ = $('.relativetime', editorSig)).length
         post.last_edit_date_s = editTime$.text()
         post.last_edit_date_z = editTime$.attr('title')
+        _ = new Date(post.last_edit_date_z)
+        post.last_edit_date = Math.floor(_.getTime()/1000 + _.getTimezoneOffset()*60)
       
       if ownerSig? and (creationTime$ = $('.relativetime', ownerSig)).length
         post.creation_date_s = creationTime$.text()
         post.creation_date_z = creationTime$.attr('title')
+        _ = new Date(post.creation_date_z)
+        post.creation_date = Math.floor(_.getTime()/1000 + _.getTimezoneOffset()*60)
     
       post
   
@@ -283,7 +303,7 @@ body = (manifest) ->
     encodeHTMLText: (text) ->
       String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;')
   
-    renderPost: (post) ->
+    renderPost: (post, parent) ->
       """
       <div class="#{@encodeHTMLText(post.post_type)} post" id="#{@encodeHTMLText(post.post_id)}">
         #{if post.title?
@@ -308,9 +328,9 @@ body = (manifest) ->
             #{post.body}
           </div>
         
-          #{@renderAttributionBox(post.creation_date_s, post.owner, 'asked')}
+          #{@renderAttributionBox(post.creation_date_z, post.owner, if post.type is 'question' then 'asked' else 'answered')}
         
-          #{@renderAttributionBox(post.last_edit_date_s, post.last_editor, 'edited')}
+          #{@renderAttributionBox(post.last_edit_date_z, post.last_editor, 'edited')}
         
           #{if post.tags?
             "<ul class=\"tags\">" +
@@ -333,16 +353,35 @@ body = (manifest) ->
     
       <div class="clear"></div>
       """
-  
-    renderAttributionBox: (date_s, shallow_user, verb) ->
-      if date_s? then """
+    
+    monthAbbrs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    
+    renderDate: (date_z) ->
+      # takes an RFC3339 UTC datetime and formats it like Stack Exchange does.
+      date = new Date(date_z)
+      """<span title="#{@encodeHTMLText date_z}">
+        #{monthAbbrs[date.getUTCMonth()]} #{date.getUTCDay()} '#{String(date.getUTCFullYear()).substr(2)}
+        at #{date.getUTCHours()}:#{date.getUTCMinutes()}Z
+      </span>
+      """
+    
+    renderAttributionBox: (date_z, shallow_user, verb) ->
+        # TODO TODO timestamp
+      if not (date_z? or shallow_user?.display_name?)
+        return ''
+      
+      """
         <div class="attribution">
-          #{verb} #{if shallow_user? and shallow_user.profile_image? and shallow_user.user_id? # TODO: degrade more gracefully.
-            "by <a href=\"/u/#{@encodeHTMLText(shallow_user.user_id)}\">#{@encodeHTMLText(shallow_user.display_name)}<img src=\"#{@encodeHTMLText(shallow_user.profile_image)}\" alt=\"\" /></a><br>"
-          else '<br>'}
-          #{@encodeHTMLText(date_s)}
+          #{verb}
+          
+          #{if shallow_user? and shallow_user.profile_image? and shallow_user.user_id? # TODO: degrade more gracefully.
+            "by <a href=\"/u/#{@encodeHTMLText(shallow_user.user_id)}\">#{@encodeHTMLText(shallow_user.display_name)}<img src=\"#{@encodeHTMLText(shallow_user.profile_image)}\" alt=\"\" /></a>"
+          else if shallow_user? and shallow_user.display_name?
+            "by #{@encodeHTMLText shallow_user.display_name}"
+          else ''}
+          #{if date_z? then '<br>' + @renderDate(date_z) else ''}
         </div>
-      """ else ''
+      """
   
     renderPostComments: (post) ->
       if post.comments?.length then """
@@ -589,7 +628,7 @@ body = (manifest) ->
         #{@encodeHTMLText(question.answers.length)} Answers
       </h2>
     
-      #{(@renderPost(answer) for answer in question.answers).join('\n')}
+      #{(@renderPost(answer, question) for answer in question.answers).join('\n')}
     </div>
     <div class="footer">
       <a href="/">exported using <a href="#{@encodeHTMLText(manifest.homepage_url)}">StackScraper</a></a>

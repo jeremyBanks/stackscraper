@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.0
+// @version        0.3.1
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.0',
+  version: '0.3.1',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -115,7 +115,7 @@ body = function(manifest) {
     return doc;
   };
   StackScraper = (function() {
-    var scrapePostElement;
+    var monthAbbrs, scrapePostElement;
 
     StackScraper.name = 'StackScraper';
 
@@ -170,7 +170,7 @@ body = function(manifest) {
 
     StackScraper.prototype.getShallowQuestion = function(questionid) {
       return this.getQuestionDocuments(questionid).pipe(function(pages) {
-        var answer, key, page$, question, row, status, tag, type, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _ref5;
+        var answer, key, page$, post, question, row, status, tag, type, _i, _j, _k, _l, _len, _len2, _len3, _len4, _ref, _ref2, _ref3, _ref4, _ref5;
         question = scrapePostElement($('.question', pages[0]));
         question.title = $('#question-header h1 a', pages[0]).text();
         question.tags = (function() {
@@ -215,7 +215,12 @@ body = function(manifest) {
           _ref5 = page$.find('.answer');
           for (_l = 0, _len4 = _ref5.length; _l < _len4; _l++) {
             answer = _ref5[_l];
-            question.answers.push(scrapePostElement($(answer)));
+            post = scrapePostElement($(answer));
+            if (post.deleted && !question.deleted) {
+              console.log("Skipping deleted answer " + post.post_id + " to not-deleted question " + question.post_id + ".");
+              continue;
+            }
+            question.answers.push(post);
           }
         }
         return question;
@@ -223,7 +228,7 @@ body = function(manifest) {
     };
 
     scrapePostElement = function(post$) {
-      var communityOwnage$, creationTime$, editTime$, editorSig, is_question, ownerSig, post, sigs, _ref;
+      var communityOwnage$, creationTime$, editTime$, editorSig, is_question, nameDisplay, ownerSig, post, sigs, _, _ref;
       if (is_question = post$.is('.question')) {
         post = {
           post_id: +post$.data('questionid'),
@@ -246,8 +251,24 @@ body = function(manifest) {
         editorSig = null;
         ownerSig = sigs[0];
       }
-      if ((communityOwnage$ = post$.find('.community-wiki')).length) {
+      if (post$.find('.anonymous-gravatar').length) {
+        post.owner = {
+          display_name: post$.find('.user-details').text()
+        };
+      } else if ((communityOwnage$ = post$.find('.community-wiki')).length) {
         post.community_owned_date_s = (_ref = communityOwnage$.attr('title')) != null ? _ref.match(/as of ([^\.]+)./)[1] : void 0;
+        nameDisplay = post$.find('[id^=history-]').contents();
+        if (nameDisplay.length === 3) {
+          if ($(nameDisplay[0]).text().indexOf('%') === -1) {
+            post.owner = {
+              display_name: $(nameDisplay[2]).text()
+            };
+          }
+        } else {
+          post.owner = {
+            display_name: $(nameDisplay[0]).text()
+          };
+        }
       } else {
         if ((!communityOwnage$.length) && (ownerSig != null) && $('.user-details a', ownerSig).length) {
           post.owner = {
@@ -269,10 +290,14 @@ body = function(manifest) {
       if ((editorSig != null) && (editTime$ = $('.relativetime', editorSig)).length) {
         post.last_edit_date_s = editTime$.text();
         post.last_edit_date_z = editTime$.attr('title');
+        _ = new Date(post.last_edit_date_z);
+        post.last_edit_date = Math.floor(_.getTime() / 1000 + _.getTimezoneOffset() * 60);
       }
       if ((ownerSig != null) && (creationTime$ = $('.relativetime', ownerSig)).length) {
         post.creation_date_s = creationTime$.text();
         post.creation_date_z = creationTime$.attr('title');
+        _ = new Date(post.creation_date_z);
+        post.creation_date = Math.floor(_.getTime() / 1000 + _.getTimezoneOffset() * 60);
       }
       return post;
     };
@@ -376,9 +401,9 @@ body = function(manifest) {
       return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/"/g, '&#39;');
     };
 
-    StackScraper.prototype.renderPost = function(post) {
+    StackScraper.prototype.renderPost = function(post, parent) {
       var tag, _ref;
-      return "  <div class=\"" + (this.encodeHTMLText(post.post_type)) + " post\" id=\"" + (this.encodeHTMLText(post.post_id)) + "\">\n    " + (post.title != null ? "<h1>" + (this.encodeHTMLText(post.title)) + "</h1>" : '') + "\n    <div class=\"metrics\">\n      " + (post.score != null ? ("<span class=\"value\">" + (this.encodeHTMLText(post.score)) + "</span>") + "<span class=\"unit\">votes</span>" : '') + "\n      " + (post.view_count != null ? "<br>" + ("<span class=\"value\">" + (this.encodeHTMLText(post.view_count)) + "</span>") + "<span class=\"unit\">views</span>" : '') + "\n      " + (((_ref = post.comments) != null ? _ref.length : void 0) ? "<br><a href=\"javascript:void(location.hash = '" + (this.encodeHTMLText(post.post_id)) + "-comments')\" style=\"text-decoration: none;\"><span class=\"value\">" + (this.encodeHTMLText(post.comments.length)) + "</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>" : '') + "\n    </div>\n    <div class=\"col\">\n      <div class=\"body\">\n        " + post.body + "\n      </div>\n    \n      " + (this.renderAttributionBox(post.creation_date_s, post.owner, 'asked')) + "\n    \n      " + (this.renderAttributionBox(post.last_edit_date_s, post.last_editor, 'edited')) + "\n    \n      " + (post.tags != null ? "<ul class=\"tags\">" + ((function() {
+      return "  <div class=\"" + (this.encodeHTMLText(post.post_type)) + " post\" id=\"" + (this.encodeHTMLText(post.post_id)) + "\">\n    " + (post.title != null ? "<h1>" + (this.encodeHTMLText(post.title)) + "</h1>" : '') + "\n    <div class=\"metrics\">\n      " + (post.score != null ? ("<span class=\"value\">" + (this.encodeHTMLText(post.score)) + "</span>") + "<span class=\"unit\">votes</span>" : '') + "\n      " + (post.view_count != null ? "<br>" + ("<span class=\"value\">" + (this.encodeHTMLText(post.view_count)) + "</span>") + "<span class=\"unit\">views</span>" : '') + "\n      " + (((_ref = post.comments) != null ? _ref.length : void 0) ? "<br><a href=\"javascript:void(location.hash = '" + (this.encodeHTMLText(post.post_id)) + "-comments')\" style=\"text-decoration: none;\"><span class=\"value\">" + (this.encodeHTMLText(post.comments.length)) + "</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>" : '') + "\n    </div>\n    <div class=\"col\">\n      <div class=\"body\">\n        " + post.body + "\n      </div>\n    \n      " + (this.renderAttributionBox(post.creation_date_z, post.owner, post.type === 'question' ? 'asked' : 'answered')) + "\n    \n      " + (this.renderAttributionBox(post.last_edit_date_z, post.last_editor, 'edited')) + "\n    \n      " + (post.tags != null ? "<ul class=\"tags\">" + ((function() {
         var _i, _len, _ref2, _results;
         _ref2 = post.tags;
         _results = [];
@@ -390,12 +415,19 @@ body = function(manifest) {
       }).call(this)).join('\n') + "</ul>" : '') + "\n    \n      <div class=\"clear\"></div>\n  \n      " + (this.renderPostComments(post)) + "\n  \n      " + (post.post_type === 'question' ? "<div class=\"source-header\">" + ("This was <a href=\"/q/" + post.post_id + "\">originally posted</a> on Stack Exchange" + (post.deleted ? ', but it has been deleted' : '') + ".") + "</div>" : '') + "\n    </div>\n  </div>  \n\n  <div class=\"clear\"></div>";
     };
 
-    StackScraper.prototype.renderAttributionBox = function(date_s, shallow_user, verb) {
-      if (date_s != null) {
-        return "<div class=\"attribution\">\n  " + verb + " " + ((shallow_user != null) && (shallow_user.profile_image != null) && (shallow_user.user_id != null) ? "by <a href=\"/u/" + (this.encodeHTMLText(shallow_user.user_id)) + "\">" + (this.encodeHTMLText(shallow_user.display_name)) + "<img src=\"" + (this.encodeHTMLText(shallow_user.profile_image)) + "\" alt=\"\" /></a><br>" : '<br>') + "\n  " + (this.encodeHTMLText(date_s)) + "\n</div>";
-      } else {
+    monthAbbrs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    StackScraper.prototype.renderDate = function(date_z) {
+      var date;
+      date = new Date(date_z);
+      return "<span title=\"" + (this.encodeHTMLText(date_z)) + "\">\n  " + monthAbbrs[date.getUTCMonth()] + " " + (date.getUTCDay()) + " '" + (String(date.getUTCFullYear()).substr(2)) + "\n  at " + (date.getUTCHours()) + ":" + (date.getUTCMinutes()) + "Z\n</span>";
+    };
+
+    StackScraper.prototype.renderAttributionBox = function(date_z, shallow_user, verb) {
+      if (!((date_z != null) || ((shallow_user != null ? shallow_user.display_name : void 0) != null))) {
         return '';
       }
+      return "<div class=\"attribution\">\n  " + verb + "\n  \n  " + ((shallow_user != null) && (shallow_user.profile_image != null) && (shallow_user.user_id != null) ? "by <a href=\"/u/" + (this.encodeHTMLText(shallow_user.user_id)) + "\">" + (this.encodeHTMLText(shallow_user.display_name)) + "<img src=\"" + (this.encodeHTMLText(shallow_user.profile_image)) + "\" alt=\"\" /></a>" : (shallow_user != null) && (shallow_user.display_name != null) ? "by " + (this.encodeHTMLText(shallow_user.display_name)) : '') + "\n  " + (date_z != null ? '<br>' + this.renderDate(date_z) : '') + "\n</div>";
     };
 
     StackScraper.prototype.renderPostComments = function(post) {
@@ -427,7 +459,7 @@ body = function(manifest) {
         _results = [];
         for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
           answer = _ref2[_i];
-          _results.push(this.renderPost(answer));
+          _results.push(this.renderPost(answer, question));
         }
         return _results;
       }).call(this)).join('\n')) + "\n  </div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (this.encodeHTMLText(manifest.homepage_url)) + "\">StackScraper</a></a>\n  </div>\n<script>\nvar QUESTION =\n// BEGIN QUESTION JSON\n" + (JSON.stringify(question)) + "\n// END QUESTION JSON\n;\n</script>\n  </body>\n</html>";
