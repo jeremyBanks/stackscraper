@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.6
+// @version        0.3.7
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.6',
+  version: '0.3.7',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -247,7 +247,7 @@ body = function(manifest) {
           for (_l = 0, _len4 = _ref5.length; _l < _len4; _l++) {
             answer = _ref5[_l];
             post = scrapePostElement($(answer));
-            if (post.deleted && ((!question.deleted) || (post.deleted_date !== question.deleted_date))) {
+            if (post.deleted && ((!question.deleted) || (post.deleted_date !== question.deleted_date && post.deleted_date !== question.migrated_date))) {
               console.log("Skipping individually-deleted answer " + post.post_id + ".");
               continue;
             }
