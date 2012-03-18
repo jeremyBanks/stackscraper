@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.4
+// @version        0.3.5
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.4'
+  version: '0.3.5'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -285,7 +285,7 @@ body = (manifest) ->
       post
   
     getQuestionDocuments: (questionid) ->
-      @ajax("/questions/#{questionid}").pipe (firstSource) =>
+      @ajax("/questions/#{questionid}?page=1&noredirect=1&answertab=votes").pipe (firstSource) =>
         firstPage$ = $(makeDocument(firstSource))
       
         # if there are multiple pages, request 'em all.

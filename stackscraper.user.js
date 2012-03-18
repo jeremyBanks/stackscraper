@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.4
+// @version        0.3.5
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.4',
+  version: '0.3.5',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -347,7 +347,7 @@ body = function(manifest) {
 
     StackScraper.prototype.getQuestionDocuments = function(questionid) {
       var _this = this;
-      return this.ajax("/questions/" + questionid).pipe(function(firstSource) {
+      return this.ajax("/questions/" + questionid + "?page=1&noredirect=1&answertab=votes").pipe(function(firstSource) {
         var firstPage$, lastPageNav$, pageCount, pageNumber;
         firstPage$ = $(makeDocument(firstSource));
         if (lastPageNav$ = $('.page-numbers:not(.next)').last()) {
