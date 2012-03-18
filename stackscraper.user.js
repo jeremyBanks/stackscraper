@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.5
+// @version        0.3.6
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.5',
+  version: '0.3.6',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -196,14 +196,23 @@ body = function(manifest) {
         _ref2 = pages[0].find('.question-status');
         for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
           status = _ref2[_i];
-          type = $('b', status).text();
+          type = $.trim($('b', status).text());
           date_z = $('.relativetime', status).attr('title');
           date = timestampFromRFCDate(date_z);
           if (type === 'closed') {
-            question.title = question.title.replace(/\ \[(closed|migrated)\]$/, '');
+            question.title = question.title.replace(/\ \[(closed)\]$/, '');
             question.closed = true;
             question.closed_date_z = date_z;
             question.closed_date = date;
+          }
+          if (type === 'migrated') {
+            question.title = question.title.replace(/\ \[(migrated)\]$/, '');
+            if (question.closed == null) question.closed = true;
+            if (question.closed_date_z == null) question.closed_date_z = date_z;
+            if (question.closed_date == null) question.closed_date = date;
+            question.migrated = true;
+            question.migrated_date_z = date_z;
+            question.migrated_date = date;
           }
           if (type === 'deleted') {
             question.deleted = true;
@@ -256,7 +265,7 @@ body = function(manifest) {
     };
 
     scrapePostElement = function(post$) {
-      var action, action_date, action_date_z, communityOwnage$, creationTime$, editTime$, editorSig, is_question, nameDisplay, ownerSig, post, sigs, statusInfo, _i, _len, _ref, _ref2;
+      var action, action_date, action_date_z, boldName, communityOwnage$, creationTime$, editTime$, editorSig, is_question, nameDisplay, ownerSig, post, sigs, statusInfo, _i, _len, _ref, _ref2;
       if (is_question = post$.is('.question')) {
         post = {
           post_id: +post$.data('questionid'),
@@ -303,7 +312,11 @@ body = function(manifest) {
       } else if ((communityOwnage$ = post$.find('.community-wiki')).length) {
         post.community_owned_date_s = (_ref2 = communityOwnage$.attr('title')) != null ? _ref2.match(/as of ([^\.]+)./)[1] : void 0;
         nameDisplay = post$.find('[id^=history-]').contents();
-        if (nameDisplay.length === 3) {
+        if ((boldName = $('b', nameDisplay)).length && $(nameDisplay[4]).text().match(/100%/)) {
+          post.owner = {
+            display_name: boldName.text()
+          };
+        } else if (nameDisplay.length === 3) {
           if ($(nameDisplay[0]).text().indexOf('%') === -1) {
             post.owner = {
               display_name: $(nameDisplay[2]).text()

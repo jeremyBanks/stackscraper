@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.5
+// @version        0.3.6
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.5'
+  version: '0.3.6'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -162,15 +162,23 @@ body = (manifest) ->
         question.locked = false
         question.protected = false
         for status in pages[0].find('.question-status')
-          type = $('b', status).text()
+          type = $.trim($('b', status).text())
           date_z = $('.relativetime', status).attr('title')
           date = timestampFromRFCDate(date_z)
           
           if type is 'closed'
-            question.title = question.title.replace(/\ \[(closed|migrated)\]$/, '')
+            question.title = question.title.replace(/\ \[(closed)\]$/, '')
             question.closed = true
             question.closed_date_z = date_z
             question.closed_date = date
+          if type is 'migrated'
+            question.title = question.title.replace(/\ \[(migrated)\]$/, '')
+            question.closed ?= true
+            question.closed_date_z ?= date_z
+            question.closed_date ?= date
+            question.migrated = true
+            question.migrated_date_z = date_z
+            question.migrated_date = date
           if type is 'deleted'
             question.deleted = true
             question.deleted_date_z = date_z
@@ -250,10 +258,12 @@ body = (manifest) ->
         
         nameDisplay = post$.find('[id^=history-]').contents()
         
-        if nameDisplay.length is 3
+        if (boldName = $('b', nameDisplay)).length and $(nameDisplay[4]).text().match(/100%/)
+          post.owner = display_name: boldName.text()
+        else if nameDisplay.length is 3
           if $(nameDisplay[0]).text().indexOf('%') == -1
             # can only be sure of owner if post doesn't have other contributors
-			# this could still be wrong if somebody entirely rewrote a post.
+            # this could still be wrong if somebody entirely rewrote a post.
             post.owner = display_name: $(nameDisplay[2]).text()
         else
           post.owner = display_name: $(nameDisplay[0]).text()
