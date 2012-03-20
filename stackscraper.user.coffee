@@ -47,21 +47,30 @@ body = (manifest) ->
 
     $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">json</a>').click ->
       $(@).addClass 'ac_loading'
-      stackScraper.getQuestion(questionId).then (question) =>
+      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(@)
+      stackScraper.getQuestion(questionId).done (question) =>
         bb = new BlobBuilder
         bb.append JSON.stringify(question)
         $(@).removeClass 'ac_loading'
+        progressDisplay.remove()
         window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
-    
+      .progress (ratio) ->
+        $('.val', progressDisplay).text((ratio * 100) | 0)
+      
       false
 
     $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download an HTML copy of this post">html</a>').click ->
       $(this).addClass 'ac_loading'
+      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(@)
       stackScraper.getQuestion(questionId).then (question) =>
         bb = new BlobBuilder
         bb.append stackScraper.renderQuestionPage(question)
         $(@).removeClass 'ac_loading'
+        progressDisplay.remove()
         window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.html"
+      .progress (ratio) ->
+        console.log ratio
+        $('.val', progressDisplay).text((ratio * 100) | 0)
     
       false
   
@@ -142,9 +151,15 @@ body = (manifest) ->
               console.warn "unable to retrieve vote counts of post #{post.post_id}"
               (new $.Deferred).resolve()
             )
-      
+        
         questionP = new $.Deferred
-      
+        
+        completedTasks = 0
+        for task in tasks
+          task.then =>
+            completedTasks++
+            questionP.notify(completedTasks / tasks.length)
+        
         $.when(tasks...).then =>
           questionP.resolve question
         , questionP.reject

@@ -50,26 +50,37 @@ body = function(manifest) {
     this.stackScraper = stackScraper = new StackScraper;
     questionId = $('#question').data('questionid');
     $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">json</a>').click(function() {
-      var _this = this;
+      var progressDisplay,
+        _this = this;
       $(this).addClass('ac_loading');
-      stackScraper.getQuestion(questionId).then(function(question) {
+      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(this);
+      stackScraper.getQuestion(questionId).done(function(question) {
         var bb;
         bb = new BlobBuilder;
         bb.append(JSON.stringify(question));
         $(_this).removeClass('ac_loading');
+        progressDisplay.remove();
         return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".json");
+      }).progress(function(ratio) {
+        return $('.val', progressDisplay).text((ratio * 100) | 0);
       });
       return false;
     }));
     return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download an HTML copy of this post">html</a>').click(function() {
-      var _this = this;
+      var progressDisplay,
+        _this = this;
       $(this).addClass('ac_loading');
+      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(this);
       stackScraper.getQuestion(questionId).then(function(question) {
         var bb;
         bb = new BlobBuilder;
         bb.append(stackScraper.renderQuestionPage(question));
         $(_this).removeClass('ac_loading');
+        progressDisplay.remove();
         return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".html");
+      }).progress(function(ratio) {
+        console.log(ratio);
+        return $('.val', progressDisplay).text((ratio * 100) | 0);
       });
       return false;
     }));
@@ -128,7 +139,7 @@ body = function(manifest) {
       var _this = this;
       if (questionid in this.questions) return this.questions[questionid];
       return this.questions[questionid] = this.getShallowQuestion(questionid).pipe(function(question) {
-        var post, questionP, tasks, _fn, _i, _len, _ref;
+        var completedTasks, post, questionP, task, tasks, _fn, _i, _j, _len, _len2, _ref;
         question.__generator__ = "" + manifest.name + " " + manifest.version;
         tasks = [];
         _ref = [question].concat(question.answers);
@@ -166,6 +177,14 @@ body = function(manifest) {
           _fn(post);
         }
         questionP = new $.Deferred;
+        completedTasks = 0;
+        for (_j = 0, _len2 = tasks.length; _j < _len2; _j++) {
+          task = tasks[_j];
+          task.then(function() {
+            completedTasks++;
+            return questionP.notify(completedTasks / tasks.length);
+          });
+        }
         $.when.apply($, tasks).then(function() {
           return questionP.resolve(question);
         }, questionP.reject);
