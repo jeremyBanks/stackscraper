@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.7
+// @version        0.3.8
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.7',
+  version: '0.3.8',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -79,7 +79,6 @@ body = function(manifest) {
         progressDisplay.remove();
         return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".html");
       }).progress(function(ratio) {
-        console.log(ratio);
         return $('.val', progressDisplay).text((ratio * 100) | 0);
       });
       return false;
