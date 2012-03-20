@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.8
+// @version        0.3.9
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.8',
+  version: '0.3.9',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -50,36 +50,34 @@ body = function(manifest) {
     this.stackScraper = stackScraper = new StackScraper;
     questionId = $('#question').data('questionid');
     $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download a JSON copy of this post">json</a>').click(function() {
-      var progressDisplay,
-        _this = this;
-      $(this).addClass('ac_loading');
-      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(this);
+      var _this = this;
+      $(this).addClass('ac_loading').text('?%');
       stackScraper.getQuestion(questionId).done(function(question) {
         var bb;
         bb = new BlobBuilder;
         bb.append(JSON.stringify(question));
-        $(_this).removeClass('ac_loading');
-        progressDisplay.remove();
-        return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".json");
+        $(_this).removeClass('ac_loading').text('json');
+        return window.location = URL.createObjectURL(bb.getBlob()) + ("#" + window.location.host + "-q" + questionId + ".json");
       }).progress(function(ratio) {
-        return $('.val', progressDisplay).text((ratio * 100) | 0);
+        return $(_this).text("" + ((ratio * 100) | 0) + "%");
+      }).fail(function() {
+        return $(_this).removeClass('ac_loading').text('error');
       });
       return false;
     }));
     return $('#question .post-menu').append('<span class="lsep">|</span>').append($('<a href="#" title="download an HTML copy of this post">html</a>').click(function() {
-      var progressDisplay,
-        _this = this;
-      $(this).addClass('ac_loading');
-      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(this);
-      stackScraper.getQuestion(questionId).then(function(question) {
+      var _this = this;
+      $(this).addClass('ac_loading').text('?%');
+      stackScraper.getQuestion(questionId).done(function(question) {
         var bb;
         bb = new BlobBuilder;
         bb.append(stackScraper.renderQuestionPage(question));
-        $(_this).removeClass('ac_loading');
-        progressDisplay.remove();
-        return window.location = URL.createObjectURL(bb.getBlob()) + ("#question-" + questionId + ".html");
+        $(_this).removeClass('ac_loading').text('json');
+        return window.location = URL.createObjectURL(bb.getBlob()) + ("#" + window.location.host + "-q" + questionId + ".html");
       }).progress(function(ratio) {
-        return $('.val', progressDisplay).text((ratio * 100) | 0);
+        return $(_this).text("" + ((ratio * 100) | 0) + "%");
+      }).fail(function() {
+        return $(_this).removeClass('ac_loading').text('error');
       });
       return false;
     }));
@@ -438,7 +436,7 @@ body = function(manifest) {
 
     StackScraper.prototype.getPostVoteCount = function(postid) {
       var _this = this;
-      return this.throttledAjax('get-vote-count', 1400, "/posts/" + postid + "/vote-counts", {
+      return this.throttledAjax('get-vote-count', 3000, "/posts/" + postid + "/vote-counts", {
         dataType: 'json'
       }).pipe(function(voteCounts) {
         return {
@@ -450,7 +448,7 @@ body = function(manifest) {
 
     StackScraper.prototype.ajax = function(url, options) {
       if (options == null) options = {};
-      return this.throttledAjax('default', 400, url, options);
+      return this.throttledAjax('default', 1500, url, options);
     };
 
     StackScraper.prototype.throttledAjax = function(throttleName, throttleDelay, url, options) {

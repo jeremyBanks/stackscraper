@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.3.8
+// @version        0.3.9
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.3.8'
+  version: '0.3.9'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -46,30 +46,31 @@ body = (manifest) ->
     questionId = $('#question').data('questionid')
 
     $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download a JSON copy of this post">json</a>').click ->
-      $(@).addClass 'ac_loading'
-      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(@)
+      $(@).addClass('ac_loading').text '?%'
       stackScraper.getQuestion(questionId).done (question) =>
         bb = new BlobBuilder
         bb.append JSON.stringify(question)
-        $(@).removeClass 'ac_loading'
-        progressDisplay.remove()
-        window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.json"
-      .progress (ratio) ->
-        $('.val', progressDisplay).text((ratio * 100) | 0)
+        $(@).removeClass('ac_loading').text 'json'
+        window.location = URL.createObjectURL(bb.getBlob()) + "##{window.location.host}-q#{questionId}.json"
+      .progress (ratio) =>
+        $(@).text "#{(ratio * 100) | 0}%"
+      .fail =>
+        $(@).removeClass('ac_loading').text 'error'
       
       false
 
     $('#question .post-menu').append('<span class="lsep">|</span>').append $('<a href="#" title="download an HTML copy of this post">html</a>').click ->
-      $(this).addClass 'ac_loading'
-      progressDisplay = $('<span>&nbsp;(<span class=val>0</span>%)</span>').insertAfter(@)
-      stackScraper.getQuestion(questionId).then (question) =>
+      $(@).addClass('ac_loading').text '?%'
+      stackScraper.getQuestion(questionId).done (question) =>
         bb = new BlobBuilder
         bb.append stackScraper.renderQuestionPage(question)
-        $(@).removeClass 'ac_loading'
-        progressDisplay.remove()
-        window.location = URL.createObjectURL(bb.getBlob()) + "#question-#{questionId}.html"
-      .progress (ratio) ->
-        $('.val', progressDisplay).text((ratio * 100) | 0)
+        $(@).removeClass('ac_loading').text 'json'
+        window.location = URL.createObjectURL(bb.getBlob()) + "##{window.location.host}-q#{questionId}.html"
+      .progress (ratio) =>
+        $(@).text "#{(ratio * 100) | 0}%"
+      .fail =>
+        $(@).removeClass('ac_loading').text 'error'
+		
     
       false
   
@@ -344,12 +345,12 @@ body = (manifest) ->
         postComments
     
     getPostVoteCount: (postid) ->
-      @throttledAjax('get-vote-count', 1400, "/posts/#{postid}/vote-counts", dataType: 'json').pipe (voteCounts) =>
+      @throttledAjax('get-vote-count', 3000, "/posts/#{postid}/vote-counts", dataType: 'json').pipe (voteCounts) =>
         (up: +voteCounts.up, down: +voteCounts.down)
   
     # be nice: wrap $.ajax to add our throttle and header.
     ajax: (url, options = {}) ->
-      @throttledAjax 'default', 400, url, options
+      @throttledAjax 'default', 1500, url, options
     
     throttledAjax: (throttleName, throttleDelay, url, options = {}) ->
       throttle = @throttles[throttleName] ?=  makeThrottle(throttleDelay)((f) -> f())
