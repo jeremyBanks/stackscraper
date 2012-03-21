@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.3.9
+// @version        0.4.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.3.9',
+  version: '0.4.0',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -57,7 +57,7 @@ body = function(manifest) {
         bb = new BlobBuilder;
         bb.append(JSON.stringify(question));
         $(_this).removeClass('ac_loading').text('json');
-        return window.location = URL.createObjectURL(bb.getBlob()) + ("#" + window.location.host + "-q" + questionId + ".json");
+        return window.location = URL.createObjectURL(bb.getBlob()) + ("#" + window.location.host + "-q-" + questionId + ".json");
       }).progress(function(ratio) {
         return $(_this).text("" + ((ratio * 100) | 0) + "%");
       }).fail(function() {
@@ -72,8 +72,8 @@ body = function(manifest) {
         var bb;
         bb = new BlobBuilder;
         bb.append(stackScraper.renderQuestionPage(question));
-        $(_this).removeClass('ac_loading').text('json');
-        return window.location = URL.createObjectURL(bb.getBlob()) + ("#" + window.location.host + "-q" + questionId + ".html");
+        $(_this).removeClass('ac_loading').text('html');
+        return window.location = URL.createObjectURL(bb.getBlob()) + ("#" + window.location.host + "-q-" + questionId + ".html");
       }).progress(function(ratio) {
         return $(_this).text("" + ((ratio * 100) | 0) + "%");
       }).fail(function() {
