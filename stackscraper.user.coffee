@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.4.0
+// @version        0.4.1
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.4.0'
+  version: '0.4.1'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -619,6 +619,8 @@ body = (manifest) ->
           position: absolute;
           bottom: 0px;
           right: 0px;
+		  width: 32px;
+		  height: 32px;
         }
       
       .post .col {
