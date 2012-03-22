@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.4.1
+// @version        0.4.2
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -24,7 +24,7 @@ var body, e, manifest,
 
 manifest = {
   name: 'StackScraper',
-  version: '0.4.1',
+  version: '0.4.2',
   description: 'Adds download options to Stack Exchange questions.',
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html',
   permissions: ['*://*.stackexchange.com/*', '*://*.stackoverflow.com/*', '*://*.serverfault.com/*', '*://*.superuser.com/*', '*://*.askubuntu.com/*', '*://*.answers.onstartups.com/*', '*://*.stackapps.com/*'],
@@ -374,6 +374,17 @@ body = function(manifest) {
       return post;
     };
 
+    StackScraper.prototype.getPostRevisionsInfo = function(postid) {
+      /*
+            reads ~2 pages of /revisions/ to accurately capture
+            .revisions
+            .firstRevisionGuid
+            .author
+            .latestEditor
+            .lastRevisionGuid
+      */
+    };
+
     StackScraper.prototype.getQuestionDocuments = function(questionid) {
       var _this = this;
       return this.ajax("/questions/" + questionid + "?page=1&noredirect=1&answertab=votes").pipe(function(firstSource) {
@@ -475,7 +486,7 @@ body = function(manifest) {
 
     StackScraper.prototype.renderPost = function(post, parent) {
       var tag, _ref;
-      return "  <div class=\"" + (this.encodeHTMLText(post.post_type)) + " post\" id=\"" + (this.encodeHTMLText(post.post_id)) + "\">\n    " + (post.title != null ? "<h1>" + (this.encodeHTMLText(post.title)) + "</h1>" : '') + "\n    <div class=\"metrics\">\n      " + (post.score != null ? ("<span class=\"value\">" + (this.encodeHTMLText(post.score)) + "</span>") + "<span class=\"unit\">votes</span>" : '') + "\n      " + (post.view_count != null ? "<br>" + ("<span class=\"value\">" + (this.encodeHTMLText(post.view_count)) + "</span>") + "<span class=\"unit\">views</span>" : '') + "\n      " + (((_ref = post.comments) != null ? _ref.length : void 0) ? "<br><a href=\"javascript:void(location.hash = '" + (this.encodeHTMLText(post.post_id)) + "-comments')\" style=\"text-decoration: none;\"><span class=\"value\">" + (this.encodeHTMLText(post.comments.length)) + "</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>" : '') + "\n    </div>\n    <div class=\"col\">\n      <div class=\"body\">\n        " + post.body + "\n      </div>\n    \n      " + (this.renderAttributionBox(post.creation_date_z, post.owner, post.type === 'question' ? 'asked' : 'answered')) + "\n    \n      " + (this.renderAttributionBox(post.last_edit_date_z, post.last_editor, 'edited')) + "\n    \n      " + (post.tags != null ? "<ul class=\"tags\">" + ((function() {
+      return "  <div class=\"" + (this.encodeHTMLText(post.post_type)) + " post\" id=\"" + (this.encodeHTMLText(post.post_id)) + "\">\n    " + (post.title != null ? "<h1>" + (this.encodeHTMLText(post.title)) + "</h1>" : '') + "\n    <div class=\"metrics\">\n      " + (post.score != null ? ("<span class=\"value\">" + (this.encodeHTMLText(post.score)) + "</span>") + "<span class=\"unit\">votes</span>" : '') + "\n      " + (post.view_count != null ? "<br>" + ("<span class=\"value\">" + (this.encodeHTMLText(post.view_count)) + "</span>") + "<span class=\"unit\">views</span>" : '') + "\n      " + (((_ref = post.comments) != null ? _ref.length : void 0) ? "<br><a href=\"javascript:void(location.hash = '" + (this.encodeHTMLText(post.post_id)) + "-comments')\" style=\"text-decoration: none;\"><span class=\"value\">" + (this.encodeHTMLText(post.comments.length)) + "</span><span class=\"unit\" style=\"font-size: 75%;\">comments</span></a>" : '') + "\n    </div>\n    <div class=\"col\">\n      <div class=\"body\">\n        " + post.body + "\n      </div>\n    \n      " + (this.renderAttributionBox(post.creation_date_z, post.owner, post.post_type === 'question' ? 'asked' : 'answered')) + "\n    \n      " + (this.renderAttributionBox(post.last_edit_date_z, post.last_editor, 'edited')) + "\n    \n      " + (post.tags != null ? "<ul class=\"tags\">" + ((function() {
         var _i, _len, _ref2, _results;
         _ref2 = post.tags;
         _results = [];

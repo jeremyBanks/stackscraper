@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.4.1
+// @version        0.4.2
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.4.1'
+  version: '0.4.2'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
@@ -308,7 +308,17 @@ body = (manifest) ->
         post.creation_date = timestampFromRFCDate(post.creation_date_z)
       
       post
-  
+    
+    getPostRevisionsInfo: (postid) ->
+      ###
+      reads ~2 pages of /revisions/ to accurately capture
+      .revisions
+      .firstRevisionGuid
+      .author
+      .latestEditor
+      .lastRevisionGuid
+      ###
+    
     getQuestionDocuments: (questionid) ->
       @ajax("/questions/#{questionid}?page=1&noredirect=1&answertab=votes").pipe (firstSource) =>
         firstPage$ = $(makeDocument(firstSource))
@@ -390,7 +400,7 @@ body = (manifest) ->
             #{post.body}
           </div>
         
-          #{@renderAttributionBox(post.creation_date_z, post.owner, if post.type is 'question' then 'asked' else 'answered')}
+          #{@renderAttributionBox(post.creation_date_z, post.owner, if post.post_type is 'question' then 'asked' else 'answered')}
         
           #{@renderAttributionBox(post.last_edit_date_z, post.last_editor, 'edited')}
         
