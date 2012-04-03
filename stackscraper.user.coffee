@@ -21,7 +21,7 @@
 
 manifest = 
   name: 'StackScraper'
-  version: '0.4.3'
+  version: '0.6.0'
   description: 'Adds download options to Stack Exchange questions.'
   homepage_url: 'http://stackapps.com/questions/3211/stackscraper-export-questions-as-json-or-html'
   permissions: [
