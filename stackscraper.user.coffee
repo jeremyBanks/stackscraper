@@ -1,6 +1,6 @@
 `// ==UserScript==
 // @name           StackScraper
-// @version        0.4.3
+// @version        0.6.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -432,7 +432,7 @@ body = (manifest) ->
       # takes an RFC3339 UTC datetime and formats it like Stack Exchange does.
       date = new Date(date_z)
       """<span title="#{@encodeHTMLText date_z}">
-        #{monthAbbrs[date.getUTCMonth()]} #{date.getUTCDay()} '#{String(date.getUTCFullYear()).substr(2)}
+        #{monthAbbrs[date.getUTCMonth()]} #{date.getUTCDay() + 1} '#{String(date.getUTCFullYear()).substr(2)}
         at #{date.getUTCHours()}:#{date.getUTCMinutes()}Z
       </span>
       """
@@ -710,7 +710,7 @@ body = (manifest) ->
   <script>
   var QUESTION =
   // BEGIN QUESTION JSON
-  #{JSON.stringify question}
+  #{JSON.stringify(question).replace(/\/script/g, "\\x2fscript")}
   // END QUESTION JSON
   ;
   </script>

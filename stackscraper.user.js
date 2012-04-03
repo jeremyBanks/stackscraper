@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           StackScraper
-// @version        0.4.3
+// @version        0.6.0
 // @namespace      http://extensions.github.com/stackscraper/
 // @description    Adds download options to Stack Exchange questions.
 // @include        *://*.stackexchange.com/questions/*
@@ -503,7 +503,7 @@ body = function(manifest) {
     StackScraper.prototype.renderDate = function(date_z) {
       var date;
       date = new Date(date_z);
-      return "<span title=\"" + (this.encodeHTMLText(date_z)) + "\">\n  " + monthAbbrs[date.getUTCMonth()] + " " + (date.getUTCDay()) + " '" + (String(date.getUTCFullYear()).substr(2)) + "\n  at " + (date.getUTCHours()) + ":" + (date.getUTCMinutes()) + "Z\n</span>";
+      return "<span title=\"" + (this.encodeHTMLText(date_z)) + "\">\n  " + monthAbbrs[date.getUTCMonth()] + " " + (date.getUTCDay() + 1) + " '" + (String(date.getUTCFullYear()).substr(2)) + "\n  at " + (date.getUTCHours()) + ":" + (date.getUTCMinutes()) + "Z\n</span>";
     };
 
     StackScraper.prototype.renderAttributionBox = function(date_z, shallow_user, verb) {
@@ -545,7 +545,7 @@ body = function(manifest) {
           _results.push(this.renderPost(answer, question));
         }
         return _results;
-      }).call(this)).join('\n')) + "\n  </div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (this.encodeHTMLText(manifest.homepage_url)) + "\">" + (this.encodeHTMLText(manifest.name)) + " " + (this.encodeHTMLText(manifest.version)) + "</a></a>\n  </div>\n<script>\nvar QUESTION =\n// BEGIN QUESTION JSON\n" + (JSON.stringify(question)) + "\n// END QUESTION JSON\n;\n</script>\n  </body>\n</html>";
+      }).call(this)).join('\n')) + "\n  </div>\n  <div class=\"footer\">\n    <a href=\"/\">exported using <a href=\"" + (this.encodeHTMLText(manifest.homepage_url)) + "\">" + (this.encodeHTMLText(manifest.name)) + " " + (this.encodeHTMLText(manifest.version)) + "</a></a>\n  </div>\n<script>\nvar QUESTION =\n// BEGIN QUESTION JSON\n" + (JSON.stringify(question).replace(/\/script/g, "\\x2fscript")) + "\n// END QUESTION JSON\n;\n</script>\n  </body>\n</html>";
     };
 
     return StackScraper;
